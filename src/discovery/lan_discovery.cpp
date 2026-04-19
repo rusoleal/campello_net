@@ -247,6 +247,16 @@ void LanDiscovery::send_beacon() {
     ::sendto(socket_, reinterpret_cast<const char*>(packet.data()),
              static_cast<int>(packet.size()), 0,
              reinterpret_cast<sockaddr*>(&broadcast_addr), sizeof(broadcast_addr));
+
+    // Also send to loopback so local testing works on hosts where
+    // broadcast packets do not reach the loopback interface.
+    sockaddr_in loopback_addr{};
+    loopback_addr.sin_family = AF_INET;
+    loopback_addr.sin_port = htons(discovery_port_);
+    loopback_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    ::sendto(socket_, reinterpret_cast<const char*>(packet.data()),
+             static_cast<int>(packet.size()), 0,
+             reinterpret_cast<sockaddr*>(&loopback_addr), sizeof(loopback_addr));
 }
 
 void LanDiscovery::receive_beacons() {
