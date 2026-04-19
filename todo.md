@@ -275,15 +275,19 @@ This roadmap is organized in progressive phases. Each phase builds upon the prev
 ## Phase 15 — Debugging, Profiling & Tooling
 **Goal:** Developers can understand and optimize network behavior.
 
-- [ ] `NetStats` per-connection: bytes in/out, packets lost, RTT, bandwidth estimate
-- [ ] Network logging categories: Verbose, Info, Warning, Error (compile-time strip)
+- [x] `NetStats` per-connection: bytes in/out, packets sent/received, RTT, packet loss
+- [x] Bandwidth estimation: exponential moving average (EMA) of bytes/sec in `poll()`
+- [x] `NetworkManager::net_stats(ClientId)` query API
+- [x] Network logging categories: Verbose, Info, Warning, Error (compile-time strip via `CAMPELLO_NET_MIN_LOG_LEVEL`)
+- [x] `set_log_callback()` for runtime log capture (editor integration, file logging)
+- [x] Logging integrated into hot paths: connect, disconnect, oversized packet, rate limit drop
 - [ ] Packet capture to pcap-compatible or custom format for offline analysis
 - [ ] Built-in network profiler API (integrates with campello editor via callbacks)
 - [ ] Network visualization hooks: draw relevancy radius, predicted vs interpolated positions
 - [ ] Stress-test example: variable entity counts, variable packet loss, benchmark tool
 
 **Deliverable:** Real-time bandwidth graph in example app; clear perf metrics for all phases.
-**Status:** Not started.
+**Status:** Core NetStats and logging complete. Packet capture and visualization hooks deferred.
 
 ---
 
@@ -329,4 +333,5 @@ This roadmap is organized in progressive phases. Each phase builds upon the prev
 | **M3a: Multi-Transport Core** | 14 (partial) | `set_transport()`, `add_transport()`, cross-transport routing. | ✅ Complete |
 | **M3b: Loopback Transport** | 14 (partial) | In-memory transport for instant tests and local multiplayer reference. | ✅ Complete |
 | **M3c: Rate Limiting** | 13 (partial) | Token-bucket per client, max packet size, max clients. | ✅ Complete |
-| **M4: Release** | 15–16 | Tooling, docs, examples, production hardening. | 🚧 Not started |
+| **M3d: NetStats & Logging** | 15 (partial) | Per-client bandwidth, packet counters, compile-time log levels. | ✅ Complete |
+| **M4: Release** | 15–16 | Packet capture, visualization hooks, docs, examples, production hardening. | 🚧 Not started |

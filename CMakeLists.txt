@@ -22,6 +22,7 @@ add_library(campello_net
     src/transport/network_simulator.cpp
     src/transport/loopback_transport.cpp
     src/rate_limiter.cpp
+    src/network_log.cpp
     src/network_time.cpp
     src/network_manager.cpp
     src/network_entity.cpp

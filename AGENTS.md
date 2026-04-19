@@ -149,6 +149,7 @@ Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake
 | 12 | LAN service discovery (UDP broadcast beacons) | ✅ |
 | 13 | Multi-transport support (`set_transport`, `add_transport`, cross-transport routing) | ✅ |
 | 13b | Rate limiting per client (messages/sec, bytes/sec, RPCs/sec) | ✅ |
+| 15 | NetStats per-connection + compile-time logging system | ✅ |
 
 ## Future Roadmap
 

@@ -1,6 +1,7 @@
 #include "campello_net/network_manager.hpp"
 #include "campello_net/network_entity.hpp"
 #include "campello_net/network_replication.hpp"
+#include "campello_net/network_log.hpp"
 #include "campello_net/rate_limiter.hpp"
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/transport/udp_transport.hpp"
@@ -82,6 +83,17 @@ struct NetworkManager::Impl {
         bool approved = false;
         bool disconnecting = false;
         RateLimiter rate_limiter;
+
+        // Stats tracking
+        std::uint64_t bytes_sent = 0;
+        std::uint64_t bytes_received = 0;
+        std::uint64_t packets_sent = 0;
+        std::uint64_t packets_received = 0;
+        std::uint64_t last_bytes_sent = 0;
+        std::uint64_t last_bytes_received = 0;
+        double last_stats_update = 0.0;
+        float bandwidth_in = 0.0f;
+        float bandwidth_out = 0.0f;
     };
     std::vector<ClientEntry> clients;
 
@@ -263,6 +275,8 @@ void NetworkManager::Impl::process_system_message(ClientId sender_id,
             write_u64_be(buf, new_id);
             send_sys(from_transport, sender_addr, SysType::ConnectAccept, buf, 8);
 
+            CAMPELLO_NET_LOGI("Client " + std::to_string(new_id) + " connected from " +
+                              sender_addr.to_string());
             if (on_connected) {
                 on_connected(new_id);
             }
@@ -312,6 +326,7 @@ void NetworkManager::Impl::process_system_message(ClientId sender_id,
             auto* entry = find_client_by_address(sender_addr);
             if (entry) {
                 ClientId id = entry->id;
+                CAMPELLO_NET_LOGI("Client " + std::to_string(id) + " disconnected");
                 clients.erase(
                     std::remove_if(clients.begin(), clients.end(),
                                    [id](const ClientEntry& c) { return c.id == id; }),
@@ -440,6 +455,9 @@ void NetworkManager::Impl::poll_transport_receives_for(transport::ITransport* t)
             if (mode == Mode::Server || mode == Mode::Host) {
                 auto* entry = find_client_by_address(sender);
                 if (entry && entry->id != local_client_id && entry->transport) {
+                    CAMPELLO_NET_LOGW("Oversized packet (" + std::to_string(len) +
+                                      " bytes) from client " + std::to_string(entry->id) +
+                                      ", disconnecting");
                     disconnect_transport_client(entry->transport, entry->address);
                     ClientId id = entry->id;
                     clients.erase(
@@ -483,8 +501,12 @@ void NetworkManager::Impl::poll_transport_receives_for(transport::ITransport* t)
             }
             // Rate-limit inbound user data
             if (!entry->rate_limiter.allow_message(len)) {
+                CAMPELLO_NET_LOGV("Rate limit dropped message from client " +
+                                  std::to_string(sender_id));
                 continue; // silently drop
             }
+            entry->bytes_received += len;
+            ++entry->packets_received;
             std::vector<std::uint8_t> data(buffer.data(), buffer.data() + len);
             push_message(sender_id, std::move(data));
             flush_to_callbacks(sender_id, buffer.data(), len);
@@ -622,12 +644,19 @@ bool NetworkManager::start(const Config& config) {
         if (impl_->on_connected) {
             impl_->on_connected(local_id);
         }
+        CAMPELLO_NET_LOGI("Host started on " + config.bind_address.to_string());
+    } else if (config.mode == Mode::Server) {
+        CAMPELLO_NET_LOGI("Server started on " + config.bind_address.to_string());
+    } else if (config.mode == Mode::Client) {
+        CAMPELLO_NET_LOGI("Client connecting to " + config.server_address.to_string());
     }
 
     return true;
 }
 
 void NetworkManager::stop() {
+    CAMPELLO_NET_LOGI("Stopping network manager");
+
     std::array<std::uint8_t, 3> packet{Impl::SYS_MAGIC[0], Impl::SYS_MAGIC[1],
                                        static_cast<std::uint8_t>(Impl::SysType::DisconnectNotify)};
 
@@ -681,6 +710,24 @@ void NetworkManager::poll() {
 
     impl_->poll_transport_receives();
     impl_->poll_client_time_sync();
+
+    // Update bandwidth estimates for all clients
+    double now = now_seconds();
+    for (auto& c : impl_->clients) {
+        if (!c.approved) continue;
+        if (c.last_stats_update > 0.0) {
+            double dt = now - c.last_stats_update;
+            if (dt > 0.0) {
+                float instant_in = static_cast<float>((c.bytes_received - c.last_bytes_received) / dt);
+                float instant_out = static_cast<float>((c.bytes_sent - c.last_bytes_sent) / dt);
+                c.bandwidth_in = c.bandwidth_in * 0.7f + instant_in * 0.3f;
+                c.bandwidth_out = c.bandwidth_out * 0.7f + instant_out * 0.3f;
+            }
+        }
+        c.last_bytes_received = c.bytes_received;
+        c.last_bytes_sent = c.bytes_sent;
+        c.last_stats_update = now;
+    }
 
     // Client mode: check if transport connected and send connect request
     if (impl_->mode == Mode::Client && !impl_->client_connected && !impl_->awaiting_accept) {
@@ -749,7 +796,12 @@ bool NetworkManager::send(ClientId client, const std::uint8_t* data, std::size_t
         return true;
     }
 
-    return entry->transport->send_to(entry->address, data, length, reliability);
+    bool ok = entry->transport->send_to(entry->address, data, length, reliability);
+    if (ok) {
+        entry->bytes_sent += length;
+        ++entry->packets_sent;
+    }
+    return ok;
 }
 
 void NetworkManager::broadcast(const std::uint8_t* data, std::size_t length,
@@ -777,7 +829,11 @@ void NetworkManager::broadcast(const std::uint8_t* data, std::size_t length,
             impl_->flush_to_callbacks(c.id, data, length);
             continue;
         }
-        c.transport->send_to(c.address, data, length, reliability);
+        bool ok = c.transport->send_to(c.address, data, length, reliability);
+        if (ok) {
+            c.bytes_sent += length;
+            ++c.packets_sent;
+        }
     }
 }
 
@@ -923,6 +979,22 @@ float NetworkManager::client_packet_loss(ClientId client) const noexcept {
     auto* entry = impl_->find_client_by_id(client);
     if (!entry || !entry->transport) return 0.0f;
     return entry->transport->get_connection_packet_loss(entry->address);
+}
+
+NetStats NetworkManager::net_stats(ClientId client) const noexcept {
+    NetStats stats{};
+    auto* entry = impl_->find_client_by_id(client);
+    if (!entry) return stats;
+
+    stats.bytes_sent = entry->bytes_sent;
+    stats.bytes_received = entry->bytes_received;
+    stats.packets_sent = entry->packets_sent;
+    stats.packets_received = entry->packets_received;
+    stats.bandwidth_out = entry->bandwidth_out;
+    stats.bandwidth_in = entry->bandwidth_in;
+    stats.rtt = client_rtt(client);
+    stats.packet_loss = client_packet_loss(client);
+    return stats;
 }
 
 double NetworkManager::network_time() const noexcept {

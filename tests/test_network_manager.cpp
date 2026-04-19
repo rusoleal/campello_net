@@ -2,6 +2,7 @@
 
 #include "campello_net/network_manager.hpp"
 #include "campello_net/network_time.hpp"
+#include "campello_net/network_log.hpp"
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/transport/loopback_transport.hpp"
 #include "campello_net/transport/network_simulator.hpp"
@@ -983,4 +984,160 @@ TEST_CASE("Rate limiter does not affect system messages") {
     // Should connect despite very restrictive message rate limit
     REQUIRE(server.client_count() == 1);
     REQUIRE(client.local_client_id() != 0);
+}
+
+// ── NetStats tests ──────────────────────────────────────────────────────────
+
+TEST_CASE("net_stats tracks bytes and packets for connected client") {
+    auto hub = std::make_shared<LoopbackHub>();
+
+    NetworkManager server;
+    server.set_transport(std::make_unique<LoopbackTransport>(hub));
+    server.start({NetworkManager::Mode::Server, Address("127.0.0.1", 40020)});
+
+    NetworkManager client;
+    client.set_transport(std::make_unique<LoopbackTransport>(hub));
+    client.start({NetworkManager::Mode::Client, {}, Address("127.0.0.1", 40020)});
+
+    server.poll();
+    client.poll();
+    server.poll();
+    client.poll();
+
+    ClientId cid = client.local_client_id();
+    REQUIRE(cid != 0);
+
+    // Stats should be zero before any traffic
+    NetStats stats = server.net_stats(cid);
+    REQUIRE(stats.bytes_received == 0);
+    REQUIRE(stats.bytes_sent == 0);
+    REQUIRE(stats.packets_received == 0);
+    REQUIRE(stats.packets_sent == 0);
+
+    // Client sends a message
+    const char* msg = "stats test";
+    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
+                PacketReliability::ReliableOrdered);
+
+    server.poll();
+    client.poll();
+
+    stats = server.net_stats(cid);
+    REQUIRE(stats.bytes_received == std::strlen(msg) + 1);
+    REQUIRE(stats.packets_received == 1);
+
+    // Server sends a reply
+    server.send(cid, reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
+                PacketReliability::ReliableOrdered);
+
+    server.poll();
+    client.poll();
+
+    stats = server.net_stats(cid);
+    REQUIRE(stats.bytes_sent == std::strlen(msg) + 1);
+    REQUIRE(stats.packets_sent == 1);
+}
+
+TEST_CASE("net_stats bandwidth estimate is non-zero after traffic") {
+    auto hub = std::make_shared<LoopbackHub>();
+
+    NetworkManager server;
+    server.set_transport(std::make_unique<LoopbackTransport>(hub));
+    server.start({NetworkManager::Mode::Server, Address("127.0.0.1", 40021)});
+
+    NetworkManager client;
+    client.set_transport(std::make_unique<LoopbackTransport>(hub));
+    client.start({NetworkManager::Mode::Client, {}, Address("127.0.0.1", 40021)});
+
+    server.poll();
+    client.poll();
+    server.poll();
+    client.poll();
+
+    ClientId cid = client.local_client_id();
+
+    // Send multiple messages rapidly
+    for (int i = 0; i < 10; ++i) {
+        client.send(reinterpret_cast<const std::uint8_t*>("hello"), 6,
+                    PacketReliability::ReliableOrdered);
+    }
+
+    server.poll();
+    client.poll();
+
+    // Bandwidth is computed in poll() based on time delta
+    // We need at least one more poll() to get the EMA updated
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    server.poll();
+
+    NetStats stats = server.net_stats(cid);
+    REQUIRE(stats.bandwidth_in > 0.0f);  // client → server traffic
+    REQUIRE(stats.bytes_received == 60); // 10 × 6 bytes
+}
+
+TEST_CASE("net_stats returns zero for unknown client") {
+    NetworkManager server;
+    server.start({NetworkManager::Mode::Server, Address("127.0.0.1", 40022)});
+
+    NetStats stats = server.net_stats(99999);
+    REQUIRE(stats.bytes_sent == 0);
+    REQUIRE(stats.bytes_received == 0);
+}
+
+// ── Logging tests ───────────────────────────────────────────────────────────
+
+TEST_CASE("set_log_callback receives log messages") {
+    std::vector<std::pair<LogLevel, std::string>> captured;
+    set_log_callback([&captured](LogLevel level, const std::string& msg) {
+        captured.push_back({level, msg});
+    });
+
+    CAMPELLO_NET_LOGI("test info message");
+    CAMPELLO_NET_LOGW("test warning message");
+    CAMPELLO_NET_LOGE("test error message");
+
+    REQUIRE(captured.size() == 3);
+    REQUIRE(captured[0].first == LogLevel::Info);
+    REQUIRE(captured[0].second == "test info message");
+    REQUIRE(captured[1].first == LogLevel::Warning);
+    REQUIRE(captured[2].first == LogLevel::Error);
+
+    // Reset callback to avoid affecting other tests
+    set_log_callback(nullptr);
+}
+
+TEST_CASE("Verbose log is captured when min level is Verbose") {
+    std::vector<std::string> verbose_msgs;
+    set_log_callback([&verbose_msgs](LogLevel level, const std::string& msg) {
+        if (level == LogLevel::Verbose) verbose_msgs.push_back(msg);
+    });
+
+    CAMPELLO_NET_LOGV("verbose thing");
+
+    REQUIRE(verbose_msgs.size() == 1);
+    REQUIRE(verbose_msgs[0] == "verbose thing");
+
+    set_log_callback(nullptr);
+}
+
+TEST_CASE("NetworkManager start/stop produces log output") {
+    std::vector<std::string> log_lines;
+    set_log_callback([&log_lines](LogLevel, const std::string& msg) {
+        log_lines.push_back(msg);
+    });
+
+    NetworkManager server;
+    server.start({NetworkManager::Mode::Server, Address("127.0.0.1", 40023)});
+    server.stop();
+
+    bool found_start = false;
+    bool found_stop = false;
+    for (const auto& line : log_lines) {
+        if (line.find("Server started") != std::string::npos) found_start = true;
+        if (line.find("Stopping network manager") != std::string::npos) found_stop = true;
+    }
+    REQUIRE(found_start);
+    REQUIRE(found_stop);
+
+    set_log_callback(nullptr);
 }

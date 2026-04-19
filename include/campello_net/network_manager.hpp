@@ -1,5 +1,6 @@
 #pragma once
 
+#include "campello_net/net_stats.hpp"
 #include "campello_net/network_time.hpp"
 #include "campello_net/transport/address.hpp"
 #include "campello_net/transport/i_transport.hpp"
@@ -134,6 +135,9 @@ public:
 
     [[nodiscard]] float client_rtt(ClientId client) const noexcept;
     [[nodiscard]] float client_packet_loss(ClientId client) const noexcept;
+
+    /// Per-client network statistics (Server / Host only).
+    [[nodiscard]] NetStats net_stats(ClientId client) const noexcept;
 
     /// Local clock synchronized to server time (Client mode only).
     [[nodiscard]] double network_time() const noexcept;
