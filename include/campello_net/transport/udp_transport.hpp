@@ -42,7 +42,8 @@ public:
     [[nodiscard]] float packet_loss() const noexcept override;
 
     /// Targeted send to a specific connected peer (server mode).
-    bool send_to(const Address& address, const uint8_t* data, std::size_t length, PacketReliability reliability) override;
+    bool send_to(const Address& address, const uint8_t* data, std::size_t length,
+                 PacketReliability reliability) override;
 
     /// Send with priority (higher values sent first when bandwidth is constrained).
     bool send_with_priority(const Address& address, const uint8_t* data, std::size_t length,
@@ -53,7 +54,7 @@ public:
 
     /// Set per-channel bandwidth limit for a specific connection (bytes/sec, 0 = unlimited).
     void set_channel_bandwidth_limit(const Address& address, PacketReliability reliability,
-                                      std::uint32_t bytes_per_second);
+                                     std::uint32_t bytes_per_second);
 
     /// Get RTT for a specific connection (0 if not connected).
     [[nodiscard]] float get_connection_rtt(const Address& address) const noexcept override;

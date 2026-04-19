@@ -1,10 +1,9 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/network_entity.hpp"
 #include "campello_net/network_manager.hpp"
 #include "campello_net/network_replication.hpp"
 #include "campello_net/serialization/bit_stream.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -34,8 +33,7 @@ struct MockEntityBridge : INetworkEntityBridge {
     std::vector<EntityHandle> destroys;
     EntityHandle next_handle = 100;
 
-    EntityHandle spawn(PrefabId prefab, NetworkId net_id,
-                       const std::vector<std::uint8_t>& init_data) override {
+    EntityHandle spawn(PrefabId prefab, NetworkId net_id, const std::vector<std::uint8_t>& init_data) override {
         spawns.push_back({prefab, net_id, init_data});
         return next_handle++;
     }
@@ -55,7 +53,8 @@ struct MockReplicationBridge : INetworkReplicationBridge {
 
     bool serialize_entity(NetworkId net_id, BitStream& stream) override {
         auto it = server_state.find(net_id);
-        if (it == server_state.end()) return false;
+        if (it == server_state.end())
+            return false;
         stream.write_float(it->second);
         ++serialize_count;
         return true;
@@ -118,8 +117,10 @@ TEST_CASE("ReplicationManager builds snapshot with dirty entities") {
     // Manually build a snapshot simulating build_and_send_snapshot logic
     std::vector<NetworkId> to_replicate = {1};
     std::vector<uint8_t> packet(4);
-    packet[0] = 0; packet[1] = 1; // snapshot_id = 1
-    packet[2] = 0; packet[3] = 1; // num_entities = 1
+    packet[0] = 0;
+    packet[1] = 1; // snapshot_id = 1
+    packet[2] = 0;
+    packet[3] = 1; // num_entities = 1
 
     for (NetworkId id : to_replicate) {
         BitStream entity_stream;
@@ -163,7 +164,8 @@ TEST_CASE("Server replicates entity state to client") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
 
@@ -253,16 +255,19 @@ TEST_CASE("Replication bandwidth stays under limit for 1000 entities") {
     {
         std::vector<NetworkId> to_replicate;
         to_replicate.reserve(1000);
-        for (NetworkId i = 1; i <= 1000; ++i) to_replicate.push_back(i);
+        for (NetworkId i = 1; i <= 1000; ++i)
+            to_replicate.push_back(i);
 
         std::vector<uint8_t> packet(4);
-        packet[0] = 0; packet[1] = 1; // snapshot_id
+        packet[0] = 0;
+        packet[1] = 1; // snapshot_id
         packet[2] = static_cast<uint8_t>((to_replicate.size() >> 8) & 0xFF);
         packet[3] = static_cast<uint8_t>(to_replicate.size() & 0xFF);
 
         for (NetworkId id : to_replicate) {
             BitStream entity_stream;
-            if (!bridge.serialize_entity(id, entity_stream)) continue;
+            if (!bridge.serialize_entity(id, entity_stream))
+                continue;
             auto span = entity_stream.span();
             uint16_t data_len = static_cast<uint16_t>(span.size());
 
@@ -337,7 +342,7 @@ TEST_CASE("NetworkVariable delta serializes changed flag") {
 
     int baseline = 100;
     REQUIRE(health.deserialize_delta(stream, baseline));
-    REQUIRE(baseline == 100); // unchanged
+    REQUIRE(baseline == 100);    // unchanged
     REQUIRE(!health.is_dirty()); // deserialize_delta shouldn't mark dirty if unchanged
 
     // Changed baseline
@@ -444,7 +449,8 @@ TEST_CASE("Interest filter culls entities outside radius") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     ClientId client_id = client_net.local_client_id();
@@ -553,7 +559,8 @@ TEST_CASE("Re-entering interest forces state send even if unchanged") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
 

@@ -29,8 +29,7 @@ public:
     // ── Outgoing ────────────────────────────────────────────────────────────
 
     /// Queue a user message. Higher priority values are sent first (default 128).
-    void queue_message(const uint8_t* data, std::size_t len, PacketReliability reliability,
-                       uint8_t priority = 128);
+    void queue_message(const uint8_t* data, std::size_t len, PacketReliability reliability, uint8_t priority = 128);
 
     /// Generate the next packet to send. Returns false when nothing to send.
     bool generate_packet(PacketHeader& out_hdr, std::vector<uint8_t>& out_payload);
@@ -41,20 +40,40 @@ public:
 
     // ── State & stats ───────────────────────────────────────────────────────
 
-    [[nodiscard]] State state() const noexcept { return state_; }
-    void set_state(State s) { state_ = s; }
+    [[nodiscard]] State state() const noexcept {
+        return state_;
+    }
+    void set_state(State s) {
+        state_ = s;
+    }
 
-    [[nodiscard]] const Address& address() const noexcept { return address_; }
-    void set_address(Address addr) { address_ = std::move(addr); }
+    [[nodiscard]] const Address& address() const noexcept {
+        return address_;
+    }
+    void set_address(Address addr) {
+        address_ = std::move(addr);
+    }
 
-    [[nodiscard]] float rtt() const noexcept { return smoothed_rtt_; }
-    [[nodiscard]] float jitter() const noexcept { return jitter_; }
+    [[nodiscard]] float rtt() const noexcept {
+        return smoothed_rtt_;
+    }
+    [[nodiscard]] float jitter() const noexcept {
+        return jitter_;
+    }
 
-    [[nodiscard]] double last_recv_time() const noexcept { return last_recv_time_; }
-    [[nodiscard]] double last_send_time() const noexcept { return last_send_time_; }
+    [[nodiscard]] double last_recv_time() const noexcept {
+        return last_recv_time_;
+    }
+    [[nodiscard]] double last_send_time() const noexcept {
+        return last_send_time_;
+    }
 
-    void mark_received(double t) { last_recv_time_ = t; }
-    void mark_sent(double t) { last_send_time_ = t; }
+    void mark_received(double t) {
+        last_recv_time_ = t;
+    }
+    void mark_sent(double t) {
+        last_send_time_ = t;
+    }
 
     [[nodiscard]] bool should_send_keepalive(double current_time) const noexcept {
         return state_ == State::Connected && (current_time - last_send_time_ > 0.1);
@@ -95,12 +114,16 @@ public:
             std::vector<std::uint8_t> data;
         };
         std::vector<QueuedMessage> send_queue;
-        std::uint32_t bandwidth_limit = 0;      // bytes/sec, 0 = unlimited
+        std::uint32_t bandwidth_limit = 0; // bytes/sec, 0 = unlimited
         std::uint32_t bytes_sent_this_second = 0;
     };
 
-    [[nodiscard]] Channel& channel(std::size_t idx) { return channels_[idx]; }
-    [[nodiscard]] const Channel& channel(std::size_t idx) const { return channels_[idx]; }
+    [[nodiscard]] Channel& channel(std::size_t idx) {
+        return channels_[idx];
+    }
+    [[nodiscard]] const Channel& channel(std::size_t idx) const {
+        return channels_[idx];
+    }
 
 private:
     Address address_;

@@ -1,7 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/rate_limiter.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -123,7 +122,7 @@ TEST_CASE("RateLimiter byte burst recovers over time", "[rate_limiter]") {
     // Wait half a second → ~50 tokens refill
     std::this_thread::sleep_for(std::chrono::milliseconds(510));
 
-    REQUIRE(rl.allow_message(49)); // slightly under to account for timing jitter
+    REQUIRE(rl.allow_message(49));  // slightly under to account for timing jitter
     REQUIRE(!rl.allow_message(10)); // not quite enough left
 }
 

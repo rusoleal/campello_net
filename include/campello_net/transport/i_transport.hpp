@@ -34,8 +34,8 @@ public:
     ///
     /// Transports that do not support targeted sends (e.g. pure datagram
     /// broadcast layers) may return false.
-    virtual bool send_to(const Address& address, const uint8_t* data,
-                         std::size_t length, PacketReliability reliability) {
+    virtual bool send_to(const Address& address, const uint8_t* data, std::size_t length,
+                         PacketReliability reliability) {
         (void)address;
         (void)data;
         (void)length;

@@ -27,17 +27,29 @@ public:
     /// Write the lowest @p num_bits of @p value (MSB-first).
     void write_bits(uint64_t value, uint8_t num_bits);
 
-    void write_bool(bool value) { write_bits(value ? 1u : 0u, 1); }
+    void write_bool(bool value) {
+        write_bits(value ? 1u : 0u, 1);
+    }
 
-    void write_uint8(uint8_t value) { write_bits(value, 8); }
+    void write_uint8(uint8_t value) {
+        write_bits(value, 8);
+    }
     void write_uint16(uint16_t value);
     void write_uint32(uint32_t value);
     void write_uint64(uint64_t value);
 
-    void write_int8(int8_t value) { write_bits(static_cast<uint64_t>(static_cast<uint8_t>(value)), 8); }
-    void write_int16(int16_t value) { write_uint16(static_cast<uint16_t>(value)); }
-    void write_int32(int32_t value) { write_uint32(static_cast<uint32_t>(value)); }
-    void write_int64(int64_t value) { write_uint64(static_cast<uint64_t>(value)); }
+    void write_int8(int8_t value) {
+        write_bits(static_cast<uint64_t>(static_cast<uint8_t>(value)), 8);
+    }
+    void write_int16(int16_t value) {
+        write_uint16(static_cast<uint16_t>(value));
+    }
+    void write_int32(int32_t value) {
+        write_uint32(static_cast<uint32_t>(value));
+    }
+    void write_int64(int64_t value) {
+        write_uint64(static_cast<uint64_t>(value));
+    }
 
     /// Protobuf-style varint (7 bits per byte, continuation high bit).
     void write_varint(uint64_t value);
@@ -55,8 +67,7 @@ public:
 
     void write_string(const std::string& str);
 
-    template<typename T>
-    void write_array(std::span<const T> values);
+    template <typename T> void write_array(std::span<const T> values);
 
     // ── Reading ─────────────────────────────────────────────────────────────
 
@@ -65,14 +76,16 @@ public:
 
     bool read_bool(bool& value) {
         uint64_t v = 0;
-        if (!read_bits(v, 1)) return false;
+        if (!read_bits(v, 1))
+            return false;
         value = v != 0;
         return true;
     }
 
     bool read_uint8(uint8_t& value) {
         uint64_t v = 0;
-        if (!read_bits(v, 8)) return false;
+        if (!read_bits(v, 8))
+            return false;
         value = static_cast<uint8_t>(v);
         return true;
     }
@@ -82,25 +95,29 @@ public:
 
     bool read_int8(int8_t& value) {
         uint8_t v = 0;
-        if (!read_uint8(v)) return false;
+        if (!read_uint8(v))
+            return false;
         value = static_cast<int8_t>(v);
         return true;
     }
     bool read_int16(int16_t& value) {
         uint16_t v = 0;
-        if (!read_uint16(v)) return false;
+        if (!read_uint16(v))
+            return false;
         value = static_cast<int16_t>(v);
         return true;
     }
     bool read_int32(int32_t& value) {
         uint32_t v = 0;
-        if (!read_uint32(v)) return false;
+        if (!read_uint32(v))
+            return false;
         value = static_cast<int32_t>(v);
         return true;
     }
     bool read_int64(int64_t& value) {
         uint64_t v = 0;
-        if (!read_uint64(v)) return false;
+        if (!read_uint64(v))
+            return false;
         value = static_cast<int64_t>(v);
         return true;
     }
@@ -116,16 +133,23 @@ public:
 
     bool read_string(std::string& str);
 
-    template<typename T>
-    bool read_array(std::vector<T>& values);
+    template <typename T> bool read_array(std::vector<T>& values);
 
     // ── State ───────────────────────────────────────────────────────────────
 
-    [[nodiscard]] std::size_t bit_count() const noexcept { return write_bit_pos_; }
-    [[nodiscard]] std::size_t byte_count() const noexcept { return (write_bit_pos_ + 7) / 8; }
-    [[nodiscard]] std::size_t read_bit_pos() const noexcept { return read_bit_pos_; }
+    [[nodiscard]] std::size_t bit_count() const noexcept {
+        return write_bit_pos_;
+    }
+    [[nodiscard]] std::size_t byte_count() const noexcept {
+        return (write_bit_pos_ + 7) / 8;
+    }
+    [[nodiscard]] std::size_t read_bit_pos() const noexcept {
+        return read_bit_pos_;
+    }
 
-    [[nodiscard]] const uint8_t* data() const noexcept { return buffer_.data(); }
+    [[nodiscard]] const uint8_t* data() const noexcept {
+        return buffer_.data();
+    }
     [[nodiscard]] std::span<const uint8_t> span() const noexcept {
         return std::span<const uint8_t>(buffer_.data(), byte_count());
     }
@@ -136,10 +160,16 @@ public:
         buffer_.clear();
     }
 
-    void reset_read() { read_bit_pos_ = 0; }
+    void reset_read() {
+        read_bit_pos_ = 0;
+    }
 
-    [[nodiscard]] bool is_aligned_to_byte() const noexcept { return (write_bit_pos_ % 8) == 0; }
-    [[nodiscard]] bool read_aligned_to_byte() const noexcept { return (read_bit_pos_ % 8) == 0; }
+    [[nodiscard]] bool is_aligned_to_byte() const noexcept {
+        return (write_bit_pos_ % 8) == 0;
+    }
+    [[nodiscard]] bool read_aligned_to_byte() const noexcept {
+        return (read_bit_pos_ % 8) == 0;
+    }
 
     /// Pad with zero bits until the next byte boundary.
     void align_to_byte() {
@@ -164,38 +194,45 @@ private:
     std::size_t read_bit_pos_ = 0;
 
     [[nodiscard]] static uint16_t to_net(uint16_t v) noexcept {
-        if constexpr (std::endian::native == std::endian::big) return v;
+        if constexpr (std::endian::native == std::endian::big)
+            return v;
         return static_cast<uint16_t>((v >> 8) | (v << 8));
     }
     [[nodiscard]] static uint32_t to_net(uint32_t v) noexcept {
-        if constexpr (std::endian::native == std::endian::big) return v;
+        if constexpr (std::endian::native == std::endian::big)
+            return v;
         return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) | ((v << 8) & 0xFF0000) | (v << 24);
     }
     [[nodiscard]] static uint64_t to_net(uint64_t v) noexcept {
-        if constexpr (std::endian::native == std::endian::big) return v;
-        return (static_cast<uint64_t>(to_net(static_cast<uint32_t>(v))) << 32)
-             | to_net(static_cast<uint32_t>(v >> 32));
+        if constexpr (std::endian::native == std::endian::big)
+            return v;
+        return (static_cast<uint64_t>(to_net(static_cast<uint32_t>(v))) << 32) | to_net(static_cast<uint32_t>(v >> 32));
     }
 };
 
 // ── Inline implementations ──────────────────────────────────────────────────
 
 inline void BitStream::write_bits(uint64_t value, uint8_t num_bits) {
-    if (num_bits == 0) return;
+    if (num_bits == 0)
+        return;
     for (int i = num_bits - 1; i >= 0; --i) {
         bool bit = (value >> i) & 1u;
         std::size_t byte_idx = write_bit_pos_ / 8;
         std::size_t bit_idx = 7 - (write_bit_pos_ % 8);
-        if (byte_idx >= buffer_.size()) buffer_.push_back(0);
-        if (bit) buffer_[byte_idx] |= static_cast<uint8_t>(1u << bit_idx);
+        if (byte_idx >= buffer_.size())
+            buffer_.push_back(0);
+        if (bit)
+            buffer_[byte_idx] |= static_cast<uint8_t>(1u << bit_idx);
         ++write_bit_pos_;
     }
 }
 
 inline bool BitStream::read_bits(uint64_t& value, uint8_t num_bits) {
     value = 0;
-    if (num_bits == 0) return true;
-    if (read_bit_pos_ + num_bits > write_bit_pos_) return false;
+    if (num_bits == 0)
+        return true;
+    if (read_bit_pos_ + num_bits > write_bit_pos_)
+        return false;
     for (int i = 0; i < num_bits; ++i) {
         std::size_t byte_idx = read_bit_pos_ / 8;
         std::size_t bit_idx = 7 - (read_bit_pos_ % 8);
@@ -259,8 +296,7 @@ inline void BitStream::write_half(float value) {
     if (exponent == 0) {
         half = static_cast<uint16_t>(static_cast<uint32_t>(sign) << 15);
     } else if (exponent == 0xFF) {
-        half = static_cast<uint16_t>((static_cast<uint32_t>(sign) << 15) | (0x1Fu << 10)
-                                     | (mantissa ? 0x200u : 0));
+        half = static_cast<uint16_t>((static_cast<uint32_t>(sign) << 15) | (0x1Fu << 10) | (mantissa ? 0x200u : 0));
     } else {
         int32_t new_exp = static_cast<int32_t>(exponent) - 127 + 15;
         if (new_exp >= 31) {
@@ -268,9 +304,8 @@ inline void BitStream::write_half(float value) {
         } else if (new_exp <= 0) {
             half = static_cast<uint16_t>(static_cast<uint32_t>(sign) << 15);
         } else {
-            half = static_cast<uint16_t>((static_cast<uint32_t>(sign) << 15)
-                                         | (static_cast<uint32_t>(new_exp) << 10)
-                                         | static_cast<uint16_t>(mantissa >> 13));
+            half = static_cast<uint16_t>((static_cast<uint32_t>(sign) << 15) | (static_cast<uint32_t>(new_exp) << 10) |
+                                         static_cast<uint16_t>(mantissa >> 13));
         }
     }
     write_bits(half, 16);
@@ -291,60 +326,73 @@ inline void BitStream::write_string(const std::string& str) {
 
 inline bool BitStream::read_uint16(uint16_t& value) {
     uint64_t v = 0;
-    if (!read_bits(v, 16)) return false;
+    if (!read_bits(v, 16))
+        return false;
     value = to_net(static_cast<uint16_t>(v));
     return true;
 }
 
 inline bool BitStream::read_uint32(uint32_t& value) {
     uint64_t v = 0;
-    if (!read_bits(v, 32)) return false;
+    if (!read_bits(v, 32))
+        return false;
     value = to_net(static_cast<uint32_t>(v));
     return true;
 }
 
 inline bool BitStream::read_uint64(uint64_t& value) {
     uint64_t v = 0;
-    if (!read_bits(v, 64)) return false;
+    if (!read_bits(v, 64))
+        return false;
     value = to_net(v);
     return true;
 }
 
 inline bool BitStream::read_varint(uint64_t& value) {
-    if (!align_read_to_byte()) return false;
+    if (!align_read_to_byte())
+        return false;
     value = 0;
     uint32_t shift = 0;
     while (true) {
         uint8_t byte = 0;
-        if (!read_uint8(byte)) return false;
+        if (!read_uint8(byte))
+            return false;
         value |= static_cast<uint64_t>(byte & 0x7F) << shift;
-        if ((byte & 0x80) == 0) break;
+        if ((byte & 0x80) == 0)
+            break;
         shift += 7;
-        if (shift >= 64) return false;
+        if (shift >= 64)
+            return false;
     }
     return true;
 }
 
 inline bool BitStream::read_float(float& value) {
-    if (!align_read_to_byte()) return false;
+    if (!align_read_to_byte())
+        return false;
     uint32_t ui = 0;
-    if (!read_uint32(ui)) return false;
+    if (!read_uint32(ui))
+        return false;
     std::memcpy(&value, &ui, sizeof(value));
     return true;
 }
 
 inline bool BitStream::read_double(double& value) {
-    if (!align_read_to_byte()) return false;
+    if (!align_read_to_byte())
+        return false;
     uint64_t ui = 0;
-    if (!read_uint64(ui)) return false;
+    if (!read_uint64(ui))
+        return false;
     std::memcpy(&value, &ui, sizeof(value));
     return true;
 }
 
 inline bool BitStream::read_half(float& value) {
-    if (!align_read_to_byte()) return false;
+    if (!align_read_to_byte())
+        return false;
     uint64_t hv = 0;
-    if (!read_bits(hv, 16)) return false;
+    if (!read_bits(hv, 16))
+        return false;
     uint16_t h = static_cast<uint16_t>(hv);
 
     uint16_t sign = (h >> 15) & 0x1;
@@ -355,20 +403,20 @@ inline bool BitStream::read_half(float& value) {
     if (exponent == 0) {
         ui = static_cast<uint32_t>(sign) << 31;
     } else if (exponent == 0x1F) {
-        ui = (static_cast<uint32_t>(sign) << 31) | (0xFFu << 23)
-           | (static_cast<uint32_t>(mantissa) << 13);
+        ui = (static_cast<uint32_t>(sign) << 31) | (0xFFu << 23) | (static_cast<uint32_t>(mantissa) << 13);
     } else {
-        ui = (static_cast<uint32_t>(sign) << 31)
-           | (static_cast<uint32_t>(exponent - 15 + 127) << 23)
-           | (static_cast<uint32_t>(mantissa) << 13);
+        ui = (static_cast<uint32_t>(sign) << 31) | (static_cast<uint32_t>(exponent - 15 + 127) << 23) |
+             (static_cast<uint32_t>(mantissa) << 13);
     }
     std::memcpy(&value, &ui, sizeof(value));
     return true;
 }
 
 inline bool BitStream::read_bytes(uint8_t* data, std::size_t len) {
-    if (!align_read_to_byte()) return false;
-    if (read_bit_pos_ + len * 8 > write_bit_pos_) return false;
+    if (!align_read_to_byte())
+        return false;
+    if (read_bit_pos_ + len * 8 > write_bit_pos_)
+        return false;
     std::size_t start_byte = read_bit_pos_ / 8;
     std::memcpy(data, buffer_.data() + start_byte, len);
     read_bit_pos_ += len * 8;
@@ -377,11 +425,14 @@ inline bool BitStream::read_bytes(uint8_t* data, std::size_t len) {
 
 inline bool BitStream::read_string(std::string& str) {
     uint64_t len = 0;
-    if (!read_varint(len)) return false;
-    if (len > 65535) return false;
+    if (!read_varint(len))
+        return false;
+    if (len > 65535)
+        return false;
     str.resize(static_cast<std::size_t>(len));
     if (len > 0) {
-        if (!read_bytes(reinterpret_cast<uint8_t*>(str.data()), static_cast<std::size_t>(len))) return false;
+        if (!read_bytes(reinterpret_cast<uint8_t*>(str.data()), static_cast<std::size_t>(len)))
+            return false;
     }
     return true;
 }

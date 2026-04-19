@@ -72,11 +72,8 @@ public:
     /// @p discovery_port  Port to bind the discovery socket to.
     /// @p game_port       The port clients should actually connect to.
     /// @p server_name     Human-readable server name (max 255 bytes UTF-8).
-    bool start_advertising(std::uint16_t discovery_port,
-                           std::uint16_t game_port,
-                           const std::string& server_name,
-                           std::uint32_t max_players = 0,
-                           float interval_seconds = 1.0f);
+    bool start_advertising(std::uint16_t discovery_port, std::uint16_t game_port, const std::string& server_name,
+                           std::uint32_t max_players = 0, float interval_seconds = 1.0f);
 
     void stop_advertising();
 

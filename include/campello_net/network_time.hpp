@@ -28,13 +28,19 @@ public:
     [[nodiscard]] double remote_to_local(double remote_time) const noexcept;
 
     /// Current smoothed clock offset (remote - local). Positive means remote is ahead.
-    [[nodiscard]] double offset() const noexcept { return smoothed_offset_; }
+    [[nodiscard]] double offset() const noexcept {
+        return smoothed_offset_;
+    }
 
     /// Current smoothed RTT in seconds.
-    [[nodiscard]] double rtt() const noexcept { return smoothed_rtt_; }
+    [[nodiscard]] double rtt() const noexcept {
+        return smoothed_rtt_;
+    }
 
     /// Number of samples processed.
-    [[nodiscard]] std::uint32_t sample_count() const noexcept { return sample_count_; }
+    [[nodiscard]] std::uint32_t sample_count() const noexcept {
+        return sample_count_;
+    }
 
     /// Reset all state.
     void reset() noexcept;

@@ -43,12 +43,14 @@ inline void set_nonblocking(socket_t s) {
     ::ioctlsocket(s, FIONBIO, &mode);
 #else
     int flags = ::fcntl(s, F_GETFL, 0);
-    if (flags >= 0) ::fcntl(s, F_SETFL, flags | O_NONBLOCK);
+    if (flags >= 0)
+        ::fcntl(s, F_SETFL, flags | O_NONBLOCK);
 #endif
 }
 
 inline void close_sock(socket_t& s) {
-    if (!is_valid(s)) return;
+    if (!is_valid(s))
+        return;
 #ifdef _WIN32
     ::closesocket(s);
 #else
@@ -77,17 +79,16 @@ bool LanDiscovery::create_socket(std::uint16_t port) {
     close_socket();
 
     socket_ = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (!is_valid(socket_)) return false;
+    if (!is_valid(socket_))
+        return false;
 
     set_nonblocking(socket_);
 
     int broadcast = 1;
-    ::setsockopt(socket_, SOL_SOCKET, SO_BROADCAST,
-                 reinterpret_cast<const char*>(&broadcast), sizeof(broadcast));
+    ::setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char*>(&broadcast), sizeof(broadcast));
 
     int reuse = 1;
-    ::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR,
-                 reinterpret_cast<const char*>(&reuse), sizeof(reuse));
+    ::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse));
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -111,16 +112,15 @@ void LanDiscovery::close_socket() {
 // Advertising
 // ════════════════════════════════════════════════════════════════════════════
 
-bool LanDiscovery::start_advertising(std::uint16_t discovery_port,
-                                     std::uint16_t game_port,
-                                     const std::string& server_name,
-                                     std::uint32_t max_players,
+bool LanDiscovery::start_advertising(std::uint16_t discovery_port, std::uint16_t game_port,
+                                     const std::string& server_name, std::uint32_t max_players,
                                      float interval_seconds) {
     // Advertiser binds to an ephemeral port (0).  It only needs to SEND
     // broadcast packets to the discovery_port; it does not need to receive
     // on that port.  This allows advertiser + listener to coexist in the
     // same process during testing.
-    if (!create_socket(0)) return false;
+    if (!create_socket(0))
+        return false;
 
     advertising_ = true;
     discovery_port_ = discovery_port;
@@ -151,7 +151,8 @@ void LanDiscovery::set_current_players(std::uint32_t count) noexcept {
 
 bool LanDiscovery::start_listening(std::uint16_t discovery_port) {
     if (!is_valid(socket_)) {
-        if (!create_socket(discovery_port)) return false;
+        if (!create_socket(discovery_port))
+            return false;
     }
     listening_ = true;
     return true;
@@ -204,7 +205,8 @@ bool LanDiscovery::is_listening() const noexcept {
 // ════════════════════════════════════════════════════════════════════════════
 
 void LanDiscovery::send_beacon() {
-    if (!is_valid(socket_)) return;
+    if (!is_valid(socket_))
+        return;
 
     std::vector<std::uint8_t> packet;
     packet.reserve(16 + server_name_.size());
@@ -233,8 +235,7 @@ void LanDiscovery::send_beacon() {
     packet.push_back(static_cast<std::uint8_t>(current_players_));
 
     // Name
-    std::uint8_t name_len = static_cast<std::uint8_t>(
-        std::min(server_name_.size(), std::size_t{255}));
+    std::uint8_t name_len = static_cast<std::uint8_t>(std::min(server_name_.size(), std::size_t{255}));
     packet.push_back(name_len);
     packet.insert(packet.end(), server_name_.data(), server_name_.data() + name_len);
 
@@ -244,8 +245,7 @@ void LanDiscovery::send_beacon() {
     broadcast_addr.sin_port = htons(discovery_port_);
     broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
 
-    ::sendto(socket_, reinterpret_cast<const char*>(packet.data()),
-             static_cast<int>(packet.size()), 0,
+    ::sendto(socket_, reinterpret_cast<const char*>(packet.data()), static_cast<int>(packet.size()), 0,
              reinterpret_cast<sockaddr*>(&broadcast_addr), sizeof(broadcast_addr));
 
     // Also send to loopback so local testing works on hosts where
@@ -254,13 +254,13 @@ void LanDiscovery::send_beacon() {
     loopback_addr.sin_family = AF_INET;
     loopback_addr.sin_port = htons(discovery_port_);
     loopback_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    ::sendto(socket_, reinterpret_cast<const char*>(packet.data()),
-             static_cast<int>(packet.size()), 0,
+    ::sendto(socket_, reinterpret_cast<const char*>(packet.data()), static_cast<int>(packet.size()), 0,
              reinterpret_cast<sockaddr*>(&loopback_addr), sizeof(loopback_addr));
 }
 
 void LanDiscovery::receive_beacons() {
-    if (!is_valid(socket_) || !beacon_cb_) return;
+    if (!is_valid(socket_) || !beacon_cb_)
+        return;
 
     constexpr std::size_t BUF_SIZE = 1024;
     std::array<std::uint8_t, BUF_SIZE> buffer{};
@@ -268,40 +268,40 @@ void LanDiscovery::receive_beacons() {
     socklen_t from_len = sizeof(from_addr);
 
     while (true) {
-        int received = ::recvfrom(socket_, reinterpret_cast<char*>(buffer.data()),
-                                  static_cast<int>(buffer.size()), 0,
+        int received = ::recvfrom(socket_, reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size()), 0,
                                   reinterpret_cast<sockaddr*>(&from_addr), &from_len);
-        if (received < static_cast<int>(13)) break;
+        if (received < static_cast<int>(13))
+            break;
 
         // Parse magic
-        std::uint32_t magic = (static_cast<std::uint32_t>(buffer[0]) << 24)
-                            | (static_cast<std::uint32_t>(buffer[1]) << 16)
-                            | (static_cast<std::uint32_t>(buffer[2]) << 8)
-                            | static_cast<std::uint32_t>(buffer[3]);
-        if (magic != MAGIC) continue;
+        std::uint32_t magic = (static_cast<std::uint32_t>(buffer[0]) << 24) |
+                              (static_cast<std::uint32_t>(buffer[1]) << 16) |
+                              (static_cast<std::uint32_t>(buffer[2]) << 8) | static_cast<std::uint32_t>(buffer[3]);
+        if (magic != MAGIC)
+            continue;
 
         // Version
-        if (buffer[4] != VERSION) continue;
+        if (buffer[4] != VERSION)
+            continue;
 
         // Game port
-        std::uint16_t game_port = static_cast<std::uint16_t>(
-            (buffer[5] << 8) | buffer[6]);
+        std::uint16_t game_port = static_cast<std::uint16_t>((buffer[5] << 8) | buffer[6]);
 
         // Player counts
-        std::uint32_t max_players = (static_cast<std::uint32_t>(buffer[7]) << 24)
-                                   | (static_cast<std::uint32_t>(buffer[8]) << 16)
-                                   | (static_cast<std::uint32_t>(buffer[9]) << 8)
-                                   | static_cast<std::uint32_t>(buffer[10]);
-        std::uint32_t current_players = (static_cast<std::uint32_t>(buffer[11]) << 24)
-                                       | (static_cast<std::uint32_t>(buffer[12]) << 16)
-                                       | (static_cast<std::uint32_t>(buffer[13]) << 8)
-                                       | static_cast<std::uint32_t>(buffer[14]);
+        std::uint32_t max_players =
+            (static_cast<std::uint32_t>(buffer[7]) << 24) | (static_cast<std::uint32_t>(buffer[8]) << 16) |
+            (static_cast<std::uint32_t>(buffer[9]) << 8) | static_cast<std::uint32_t>(buffer[10]);
+        std::uint32_t current_players =
+            (static_cast<std::uint32_t>(buffer[11]) << 24) | (static_cast<std::uint32_t>(buffer[12]) << 16) |
+            (static_cast<std::uint32_t>(buffer[13]) << 8) | static_cast<std::uint32_t>(buffer[14]);
 
         // Name
         std::size_t offset = 15;
-        if (offset >= static_cast<std::size_t>(received)) continue;
+        if (offset >= static_cast<std::size_t>(received))
+            continue;
         std::uint8_t name_len = buffer[offset++];
-        if (offset + name_len > static_cast<std::size_t>(received)) continue;
+        if (offset + name_len > static_cast<std::size_t>(received))
+            continue;
         std::string name(reinterpret_cast<const char*>(buffer.data() + offset), name_len);
 
         // Build address from sender IP + advertised game port

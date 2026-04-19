@@ -1,13 +1,12 @@
-#include <catch2/catch_test_macros.hpp>
-
+#include "campello_net/network_log.hpp"
 #include "campello_net/network_manager.hpp"
 #include "campello_net/network_time.hpp"
-#include "campello_net/network_log.hpp"
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/transport/loopback_transport.hpp"
 #include "campello_net/transport/network_simulator.hpp"
 #include "campello_net/transport/udp_transport.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -113,7 +112,8 @@ TEST_CASE("Server and client connect and exchange messages") {
         server.poll();
         client.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (connected_client != 0 && client.local_client_id() != 0) break;
+        if (connected_client != 0 && client.local_client_id() != 0)
+            break;
     }
 
     REQUIRE(connected_client != 0);
@@ -123,8 +123,7 @@ TEST_CASE("Server and client connect and exchange messages") {
 
     // Client -> Server message
     const char* msg = "hello server";
-    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
-                PacketReliability::ReliableOrdered);
+    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     poll_both(client, server, 20);
 
@@ -183,7 +182,8 @@ TEST_CASE("Server broadcasts to all clients") {
         client1.poll();
         client2.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server.client_count() >= 2) break;
+        if (server.client_count() >= 2)
+            break;
     }
 
     REQUIRE(server.client_count() == 2);
@@ -268,8 +268,7 @@ TEST_CASE("Host mode local client sends and receives") {
 
     // Local client sends
     const char* msg = "host hello";
-    host.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
-              PacketReliability::ReliableOrdered);
+    host.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     host.poll();
 
@@ -328,7 +327,8 @@ TEST_CASE("Client disconnect notifies server") {
         server.poll();
         client.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server.client_count() > 0 && client.local_client_id() != 0) break;
+        if (server.client_count() > 0 && client.local_client_id() != 0)
+            break;
     }
     REQUIRE(server.client_count() == 1);
     REQUIRE(client.local_client_id() != 0);
@@ -340,7 +340,8 @@ TEST_CASE("Client disconnect notifies server") {
         server.poll();
         client.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (disconnected_id != 0) break;
+        if (disconnected_id != 0)
+            break;
     }
 
     REQUIRE(disconnected_id != 0);
@@ -380,7 +381,8 @@ TEST_CASE("set_transport injects custom ITransport") {
         server.poll();
         client.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (connected_client != 0 && client.local_client_id() != 0) break;
+        if (connected_client != 0 && client.local_client_id() != 0)
+            break;
     }
 
     REQUIRE(connected_client != 0);
@@ -389,8 +391,7 @@ TEST_CASE("set_transport injects custom ITransport") {
 
     // Exchange a message
     const char* msg = "through simulator";
-    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
-                PacketReliability::ReliableOrdered);
+    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     poll_both(client, server, 40);
 
@@ -458,7 +459,8 @@ TEST_CASE("Multi-transport server accepts clients on different transports") {
         client_a.poll();
         client_b.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server.client_count() >= 2) break;
+        if (server.client_count() >= 2)
+            break;
     }
 
     REQUIRE(server.client_count() == 2);
@@ -548,8 +550,7 @@ TEST_CASE("Host mode add_local_client creates couch player") {
 
     // Local client 1 sends — received by server side
     const char* msg1 = "from local1";
-    host.send(reinterpret_cast<const std::uint8_t*>(msg1), std::strlen(msg1) + 1,
-              PacketReliability::ReliableOrdered);
+    host.send(reinterpret_cast<const std::uint8_t*>(msg1), std::strlen(msg1) + 1, PacketReliability::ReliableOrdered);
 
     host.poll();
 
@@ -588,9 +589,12 @@ TEST_CASE("Host mode add_local_client creates couch player") {
     bool got_local_bcast = false;
     bool got_couch2_bcast = false;
     while (host.pop_message(received)) {
-        if (std::strcmp(reinterpret_cast<const char*>(received.payload.data()), "all locals") != 0) continue;
-        if (received.client == local) got_local_bcast = true;
-        if (received.client == couch2) got_couch2_bcast = true;
+        if (std::strcmp(reinterpret_cast<const char*>(received.payload.data()), "all locals") != 0)
+            continue;
+        if (received.client == local)
+            got_local_bcast = true;
+        if (received.client == couch2)
+            got_couch2_bcast = true;
     }
     REQUIRE(got_local_bcast);
     REQUIRE(got_couch2_bcast);
@@ -664,7 +668,9 @@ TEST_CASE("NetworkManager server/client over LoopbackTransport without sockets o
     REQUIRE(server.start(sconfig));
 
     ClientId connected_client = 0;
-    server.on_client_connected([&connected_client](ClientId id) { connected_client = id; });
+    server.on_client_connected([&connected_client](ClientId id) {
+        connected_client = id;
+    });
 
     // Client
     NetworkManager client;
@@ -685,8 +691,7 @@ TEST_CASE("NetworkManager server/client over LoopbackTransport without sockets o
 
     // Client → Server message
     const char* msg = "instant hello";
-    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
-                PacketReliability::ReliableOrdered);
+    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     server.poll();
     client.poll();
@@ -733,7 +738,9 @@ TEST_CASE("LoopbackTransport multi-client server with NetworkManager") {
     REQUIRE(server.start(sconfig));
 
     std::vector<ClientId> connected;
-    server.on_client_connected([&connected](ClientId id) { connected.push_back(id); });
+    server.on_client_connected([&connected](ClientId id) {
+        connected.push_back(id);
+    });
 
     NetworkManager client1;
     client1.set_transport(std::make_unique<LoopbackTransport>(hub));
@@ -838,7 +845,9 @@ TEST_CASE("max_packet_size disconnects offender") {
     REQUIRE(server.start(sconfig));
 
     ClientId disconnected_id = 0;
-    server.on_client_disconnected([&disconnected_id](ClientId id) { disconnected_id = id; });
+    server.on_client_disconnected([&disconnected_id](ClientId id) {
+        disconnected_id = id;
+    });
 
     NetworkManager client;
     client.set_transport(std::make_unique<LoopbackTransport>(hub));
@@ -892,8 +901,7 @@ TEST_CASE("Message rate limiting drops excess inbound traffic") {
     // Send 5 messages rapidly
     for (int i = 0; i < 5; ++i) {
         std::string msg = "msg " + std::to_string(i);
-        client.send(reinterpret_cast<const std::uint8_t*>(msg.data()), msg.size(),
-                    PacketReliability::ReliableOrdered);
+        client.send(reinterpret_cast<const std::uint8_t*>(msg.data()), msg.size(), PacketReliability::ReliableOrdered);
     }
 
     server.poll();
@@ -1016,8 +1024,7 @@ TEST_CASE("net_stats tracks bytes and packets for connected client") {
 
     // Client sends a message
     const char* msg = "stats test";
-    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1,
-                PacketReliability::ReliableOrdered);
+    client.send(reinterpret_cast<const std::uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     server.poll();
     client.poll();
@@ -1058,8 +1065,7 @@ TEST_CASE("net_stats bandwidth estimate is non-zero after traffic") {
 
     // Send multiple messages rapidly
     for (int i = 0; i < 10; ++i) {
-        client.send(reinterpret_cast<const std::uint8_t*>("hello"), 6,
-                    PacketReliability::ReliableOrdered);
+        client.send(reinterpret_cast<const std::uint8_t*>("hello"), 6, PacketReliability::ReliableOrdered);
     }
 
     server.poll();
@@ -1109,7 +1115,8 @@ TEST_CASE("set_log_callback receives log messages") {
 TEST_CASE("Verbose log is captured when min level is Verbose") {
     std::vector<std::string> verbose_msgs;
     set_log_callback([&verbose_msgs](LogLevel level, const std::string& msg) {
-        if (level == LogLevel::Verbose) verbose_msgs.push_back(msg);
+        if (level == LogLevel::Verbose)
+            verbose_msgs.push_back(msg);
     });
 
     CAMPELLO_NET_LOGV("verbose thing");
@@ -1133,8 +1140,10 @@ TEST_CASE("NetworkManager start/stop produces log output") {
     bool found_start = false;
     bool found_stop = false;
     for (const auto& line : log_lines) {
-        if (line.find("Server started") != std::string::npos) found_start = true;
-        if (line.find("Stopping network manager") != std::string::npos) found_stop = true;
+        if (line.find("Server started") != std::string::npos)
+            found_start = true;
+        if (line.find("Stopping network manager") != std::string::npos)
+            found_stop = true;
     }
     REQUIRE(found_start);
     REQUIRE(found_stop);

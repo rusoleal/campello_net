@@ -1,5 +1,4 @@
 #include <campello_net/version.hpp>
-
 #include <catch2/catch_test_macros.hpp>
 
 using namespace systems::leal::campello_net;

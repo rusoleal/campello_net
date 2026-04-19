@@ -28,8 +28,7 @@ public:
     /// @param net_id    Globally unique network identifier for this entity.
     /// @param init_data Optional initialization blob (e.g. transform, name).
     /// @return Opaque handle to the created local entity.
-    virtual EntityHandle spawn(PrefabId prefab, NetworkId net_id,
-                               const std::vector<std::uint8_t>& init_data) = 0;
+    virtual EntityHandle spawn(PrefabId prefab, NetworkId net_id, const std::vector<std::uint8_t>& init_data) = 0;
 
     /// Destroy a local entity. Called on server and clients.
     virtual void destroy(EntityHandle handle) = 0;
@@ -58,8 +57,7 @@ public:
 
     /// Spawn a new networked entity. Returns the assigned NetworkId.
     /// If `net` is non-null, broadcasts spawn to all connected clients.
-    NetworkId spawn(PrefabId prefab, const std::vector<std::uint8_t>& init_data = {},
-                    NetworkManager* net = nullptr);
+    NetworkId spawn(PrefabId prefab, const std::vector<std::uint8_t>& init_data = {}, NetworkManager* net = nullptr);
 
     /// Destroy an entity by NetworkId.
     /// If `net` is non-null, broadcasts destroy to all connected clients.
@@ -101,8 +99,7 @@ private:
     INetworkEntityBridge* bridge_ = nullptr;
     NetworkId next_id_ = 1;
 
-    void broadcast_spawn(const Entity& ent, const std::vector<std::uint8_t>& init_data,
-                         NetworkManager& net);
+    void broadcast_spawn(const Entity& ent, const std::vector<std::uint8_t>& init_data, NetworkManager& net);
     void broadcast_destroy(NetworkId id, NetworkManager& net);
 
     // Serialization helpers (big-endian on wire)

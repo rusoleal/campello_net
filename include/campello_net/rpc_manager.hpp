@@ -56,18 +56,15 @@ public:
     // ── Invocation (variadic helpers) ────────────────────────────────────────
 
     /// Server → Client: invoke RPC @p rpc_id on @p client.
-    template<typename... Args>
-    void invoke_client(ClientId client, std::uint16_t rpc_id, Args&&... args);
+    template <typename... Args> void invoke_client(ClientId client, std::uint16_t rpc_id, Args&&... args);
 
     /// Client → Server: invoke RPC @p rpc_id on the server.
-    template<typename... Args>
-    void invoke_server(std::uint16_t rpc_id, Args&&... args);
+    template <typename... Args> void invoke_server(std::uint16_t rpc_id, Args&&... args);
 
     // ── Low-level invocation (BitStream args) ────────────────────────────────
 
     /// Server → Client.
-    void invoke_client(ClientId client, std::uint16_t rpc_id,
-                       const serialization::BitStream& args);
+    void invoke_client(ClientId client, std::uint16_t rpc_id, const serialization::BitStream& args);
 
     /// Client → Server.
     void invoke_server(std::uint16_t rpc_id, const serialization::BitStream& args);
@@ -81,21 +78,18 @@ private:
     NetworkManager* net_ = nullptr;
     std::unordered_map<std::uint16_t, Handler> handlers_;
 
-    void send_rpc(ClientId target_client, std::uint16_t rpc_id,
-                  const serialization::BitStream& args);
+    void send_rpc(ClientId target_client, std::uint16_t rpc_id, const serialization::BitStream& args);
 };
 
 // ── Template implementations ────────────────────────────────────────────────
 
-template<typename... Args>
-void RpcManager::invoke_client(ClientId client, std::uint16_t rpc_id, Args&&... args) {
+template <typename... Args> void RpcManager::invoke_client(ClientId client, std::uint16_t rpc_id, Args&&... args) {
     serialization::BitStream stream;
     (serialization::serialize(stream, std::forward<Args>(args)), ...);
     send_rpc(client, rpc_id, stream);
 }
 
-template<typename... Args>
-void RpcManager::invoke_server(std::uint16_t rpc_id, Args&&... args) {
+template <typename... Args> void RpcManager::invoke_server(std::uint16_t rpc_id, Args&&... args) {
     serialization::BitStream stream;
     (serialization::serialize(stream, std::forward<Args>(args)), ...);
     send_rpc(0, rpc_id, stream);

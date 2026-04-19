@@ -31,21 +31,15 @@ void NetworkEntityManager::write_u16_be(std::uint8_t* dst, std::uint16_t value) 
 }
 
 std::uint64_t NetworkEntityManager::read_u64_be(const std::uint8_t* src) noexcept {
-    return (static_cast<std::uint64_t>(src[0]) << 56) |
-           (static_cast<std::uint64_t>(src[1]) << 48) |
-           (static_cast<std::uint64_t>(src[2]) << 40) |
-           (static_cast<std::uint64_t>(src[3]) << 32) |
-           (static_cast<std::uint64_t>(src[4]) << 24) |
-           (static_cast<std::uint64_t>(src[5]) << 16) |
-           (static_cast<std::uint64_t>(src[6]) << 8) |
-           static_cast<std::uint64_t>(src[7]);
+    return (static_cast<std::uint64_t>(src[0]) << 56) | (static_cast<std::uint64_t>(src[1]) << 48) |
+           (static_cast<std::uint64_t>(src[2]) << 40) | (static_cast<std::uint64_t>(src[3]) << 32) |
+           (static_cast<std::uint64_t>(src[4]) << 24) | (static_cast<std::uint64_t>(src[5]) << 16) |
+           (static_cast<std::uint64_t>(src[6]) << 8) | static_cast<std::uint64_t>(src[7]);
 }
 
 std::uint32_t NetworkEntityManager::read_u32_be(const std::uint8_t* src) noexcept {
-    return (static_cast<std::uint32_t>(src[0]) << 24) |
-           (static_cast<std::uint32_t>(src[1]) << 16) |
-           (static_cast<std::uint32_t>(src[2]) << 8) |
-           static_cast<std::uint32_t>(src[3]);
+    return (static_cast<std::uint32_t>(src[0]) << 24) | (static_cast<std::uint32_t>(src[1]) << 16) |
+           (static_cast<std::uint32_t>(src[2]) << 8) | static_cast<std::uint32_t>(src[3]);
 }
 
 std::uint16_t NetworkEntityManager::read_u16_be(const std::uint8_t* src) noexcept {
@@ -68,9 +62,8 @@ void NetworkEntityManager::set_bridge(INetworkEntityBridge* bridge) {
 
 // ── Server API ──────────────────────────────────────────────────────────────
 
-NetworkId NetworkEntityManager::spawn(PrefabId prefab,
-                                       const std::vector<std::uint8_t>& init_data,
-                                       NetworkManager* net) {
+NetworkId NetworkEntityManager::spawn(PrefabId prefab, const std::vector<std::uint8_t>& init_data,
+                                      NetworkManager* net) {
     NetworkId id = next_id_++;
 
     Entity ent;
@@ -91,7 +84,8 @@ NetworkId NetworkEntityManager::spawn(PrefabId prefab,
 
 void NetworkEntityManager::destroy(NetworkId id, NetworkManager* net) {
     auto it = entities_.find(id);
-    if (it == entities_.end()) return;
+    if (it == entities_.end())
+        return;
 
     if (bridge_) {
         bridge_->destroy(it->second.local_handle);
@@ -113,9 +107,8 @@ void NetworkEntityManager::set_owner(NetworkId id, ClientId owner) {
 
 // ── Broadcasting ────────────────────────────────────────────────────────────
 
-void NetworkEntityManager::broadcast_spawn(const Entity& ent,
-                                              const std::vector<std::uint8_t>& init_data,
-                                              NetworkManager& net) {
+void NetworkEntityManager::broadcast_spawn(const Entity& ent, const std::vector<std::uint8_t>& init_data,
+                                           NetworkManager& net) {
     // System message: [0xCA][0xFE][0x10][net_id 8][prefab 4][init_len 2][init_data...]
     std::size_t payload_size = 8 + 4 + 2 + init_data.size();
     std::vector<std::uint8_t> msg(3 + payload_size);
@@ -162,15 +155,16 @@ void NetworkEntityManager::send_full_state_to_client(ClientId client, NetworkMan
 
 // ── Message handlers (client-side) ──────────────────────────────────────────
 
-void NetworkEntityManager::on_receive_spawn(ClientId /*sender*/, const std::uint8_t* data,
-                                              std::size_t len) {
-    if (len < 14) return;
+void NetworkEntityManager::on_receive_spawn(ClientId /*sender*/, const std::uint8_t* data, std::size_t len) {
+    if (len < 14)
+        return;
 
     NetworkId net_id = read_u64_be(data);
     PrefabId prefab = read_u32_be(data + 8);
     std::uint16_t init_len = read_u16_be(data + 12);
 
-    if (len < 14 + init_len) return;
+    if (len < 14 + init_len)
+        return;
 
     std::vector<std::uint8_t> init_data;
     if (init_len > 0) {
@@ -178,7 +172,8 @@ void NetworkEntityManager::on_receive_spawn(ClientId /*sender*/, const std::uint
     }
 
     // If entity already exists, ignore (duplicate spawn)
-    if (entities_.find(net_id) != entities_.end()) return;
+    if (entities_.find(net_id) != entities_.end())
+        return;
 
     Entity ent;
     ent.net_id = net_id;
@@ -189,13 +184,14 @@ void NetworkEntityManager::on_receive_spawn(ClientId /*sender*/, const std::uint
     entities_[net_id] = ent;
 }
 
-void NetworkEntityManager::on_receive_destroy(ClientId /*sender*/, const std::uint8_t* data,
-                                               std::size_t len) {
-    if (len < 8) return;
+void NetworkEntityManager::on_receive_destroy(ClientId /*sender*/, const std::uint8_t* data, std::size_t len) {
+    if (len < 8)
+        return;
     NetworkId net_id = read_u64_be(data);
 
     auto it = entities_.find(net_id);
-    if (it == entities_.end()) return;
+    if (it == entities_.end())
+        return;
 
     if (bridge_) {
         bridge_->destroy(it->second.local_handle);
@@ -203,9 +199,9 @@ void NetworkEntityManager::on_receive_destroy(ClientId /*sender*/, const std::ui
     entities_.erase(it);
 }
 
-void NetworkEntityManager::on_receive_set_owner(ClientId /*sender*/, const std::uint8_t* data,
-                                                 std::size_t len) {
-    if (len < 16) return;
+void NetworkEntityManager::on_receive_set_owner(ClientId /*sender*/, const std::uint8_t* data, std::size_t len) {
+    if (len < 16)
+        return;
     NetworkId net_id = read_u64_be(data);
     ClientId owner = read_u64_be(data + 8);
 
@@ -215,8 +211,7 @@ void NetworkEntityManager::on_receive_set_owner(ClientId /*sender*/, const std::
     }
 }
 
-void NetworkEntityManager::on_receive_full_state(ClientId /*sender*/, const std::uint8_t* data,
-                                                  std::size_t len) {
+void NetworkEntityManager::on_receive_full_state(ClientId /*sender*/, const std::uint8_t* data, std::size_t len) {
     // Full state is sent as individual spawn messages for now.
     // This handler is a placeholder for a batched format.
     (void)data;
@@ -248,8 +243,7 @@ std::size_t NetworkEntityManager::entity_count() const noexcept {
     return entities_.size();
 }
 
-void NetworkEntityManager::for_each_entity(
-    std::function<void(NetworkId, PrefabId, EntityHandle, ClientId)> cb) const {
+void NetworkEntityManager::for_each_entity(std::function<void(NetworkId, PrefabId, EntityHandle, ClientId)> cb) const {
     for (const auto& [id, ent] : entities_) {
         cb(id, ent.prefab_id, ent.local_handle, ent.owner_id);
     }

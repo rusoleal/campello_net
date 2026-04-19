@@ -40,19 +40,16 @@ public:
     /// @param client_rtt_ms Round-trip time to that client (milliseconds).
     /// @return The tick to rewind to.  If the history doesn't go back far
     ///         enough, returns the oldest available tick.
-    [[nodiscard]] std::uint16_t get_rewind_tick(std::uint16_t client_tick,
-                                                 float client_rtt_ms) const;
+    [[nodiscard]] std::uint16_t get_rewind_tick(std::uint16_t client_tick, float client_rtt_ms) const;
 
     /// Retrieve the serialized state of @p entity at @p tick.
     /// Returns true and fills @p out if the snapshot exists and contains
     /// the entity.
-    [[nodiscard]] bool get_entity_state(std::uint16_t tick, NetworkId entity,
-                                        std::vector<std::uint8_t>& out) const;
+    [[nodiscard]] bool get_entity_state(std::uint16_t tick, NetworkId entity, std::vector<std::uint8_t>& out) const;
 
     /// Retrieve *all* entity states stored at @p tick.
     /// Returns false if the tick is not in history.
-    [[nodiscard]] bool get_all_entities(std::uint16_t tick,
-                                        std::vector<EntitySnapshot>& out) const;
+    [[nodiscard]] bool get_all_entities(std::uint16_t tick, std::vector<EntitySnapshot>& out) const;
 
 private:
     const SnapshotHistory* history_ = nullptr;

@@ -32,17 +32,17 @@ public:
 
     struct Config {
         Mode mode = Mode::None;
-        transport::Address bind_address;           ///< Local address to bind (Server/Host)
-        transport::Address server_address;         ///< Remote server to connect to (Client/Host)
-        std::size_t max_clients = 32;              ///< Max incoming connections (Server/Host)
-        float connection_timeout_sec = 10.0f;      ///< Transport-level timeout
+        transport::Address bind_address;      ///< Local address to bind (Server/Host)
+        transport::Address server_address;    ///< Remote server to connect to (Client/Host)
+        std::size_t max_clients = 32;         ///< Max incoming connections (Server/Host)
+        float connection_timeout_sec = 10.0f; ///< Transport-level timeout
 
         // ── Rate limiting & security ──
-        std::size_t max_packet_size = 8192;        ///< Drop packets larger than this (bytes)
-        float max_messages_per_sec = 100.0f;       ///< 0 = unlimited
+        std::size_t max_packet_size = 8192;          ///< Drop packets larger than this (bytes)
+        float max_messages_per_sec = 100.0f;         ///< 0 = unlimited
         float max_bytes_per_sec = 1024.0f * 1024.0f; ///< 0 = unlimited
-        float max_rpcs_per_sec = 50.0f;            ///< 0 = unlimited
-        float rate_limit_burst = 10.0f;            ///< Token bucket burst size
+        float max_rpcs_per_sec = 50.0f;              ///< 0 = unlimited
+        float rate_limit_burst = 10.0f;              ///< Token bucket burst size
     };
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ public:
     // ── Receiving ────────────────────────────────────────────────────────────
 
     struct ReceivedMessage {
-        ClientId client = 0;               ///< Sender (or 0 for server-to-client messages)
+        ClientId client = 0; ///< Sender (or 0 for server-to-client messages)
         std::vector<std::uint8_t> payload;
     };
 

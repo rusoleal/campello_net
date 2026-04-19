@@ -27,8 +27,7 @@ public:
     void store(ClientId client, std::uint16_t tick, std::span<const std::uint8_t> data);
 
     /// Retrieve input data for @p client at @p tick. Returns false if not found.
-    [[nodiscard]] bool retrieve(ClientId client, std::uint16_t tick,
-                                std::vector<std::uint8_t>& out) const;
+    [[nodiscard]] bool retrieve(ClientId client, std::uint16_t tick, std::vector<std::uint8_t>& out) const;
 
     /// Check whether input for @p client at @p tick exists.
     [[nodiscard]] bool has(ClientId client, std::uint16_t tick) const;

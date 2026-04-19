@@ -1,8 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/network_entity.hpp"
 #include "campello_net/network_manager.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstring>
 #include <thread>
@@ -23,8 +22,7 @@ struct MockBridge : INetworkEntityBridge {
     std::vector<EntityHandle> destroys;
     EntityHandle next_handle = 100;
 
-    EntityHandle spawn(PrefabId prefab, NetworkId net_id,
-                       const std::vector<std::uint8_t>& init_data) override {
+    EntityHandle spawn(PrefabId prefab, NetworkId net_id, const std::vector<std::uint8_t>& init_data) override {
         spawns.push_back({prefab, net_id, init_data});
         return next_handle++;
     }
@@ -100,9 +98,20 @@ TEST_CASE("Duplicate spawn is ignored on client receive") {
 
     // Simulate server spawning entity with id=5
     std::vector<std::uint8_t> msg(14);
-    msg[0] = 0; msg[1] = 0; msg[2] = 0; msg[3] = 0; msg[4] = 0; msg[5] = 0; msg[6] = 0; msg[7] = 5; // net_id=5 BE
-    msg[8] = 0; msg[9] = 0; msg[10] = 0; msg[11] = 7; // prefab=7 BE
-    msg[12] = 0; msg[13] = 0; // init_len=0
+    msg[0] = 0;
+    msg[1] = 0;
+    msg[2] = 0;
+    msg[3] = 0;
+    msg[4] = 0;
+    msg[5] = 0;
+    msg[6] = 0;
+    msg[7] = 5; // net_id=5 BE
+    msg[8] = 0;
+    msg[9] = 0;
+    msg[10] = 0;
+    msg[11] = 7; // prefab=7 BE
+    msg[12] = 0;
+    msg[13] = 0; // init_len=0
 
     mgr.on_receive_spawn(0, msg.data(), msg.size());
     REQUIRE(mgr.entity_count() == 1);
@@ -110,7 +119,7 @@ TEST_CASE("Duplicate spawn is ignored on client receive") {
 
     // Receive duplicate spawn
     mgr.on_receive_spawn(0, msg.data(), msg.size());
-    REQUIRE(mgr.entity_count() == 1); // still 1, not 2
+    REQUIRE(mgr.entity_count() == 1);   // still 1, not 2
     REQUIRE(bridge.spawns.size() == 1); // bridge called only once
 }
 
@@ -157,7 +166,8 @@ TEST_CASE("Server spawns entity and client receives it") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
 
@@ -204,7 +214,8 @@ TEST_CASE("Server destroys entity and client removes it") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
 
@@ -261,7 +272,8 @@ TEST_CASE("Late-joiner receives full state") {
         server_net.poll();
         client1.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client1.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client1.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
 

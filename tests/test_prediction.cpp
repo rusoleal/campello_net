@@ -1,5 +1,3 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/network_entity.hpp"
 #include "campello_net/network_manager.hpp"
 #include "campello_net/network_replication.hpp"
@@ -8,6 +6,7 @@
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/serialization/bit_stream.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -90,7 +89,9 @@ TEST_CASE("InputBuffer tracks last received tick") {
 struct PredictionTestBridge : INetworkReplicationBridge {
     std::unordered_map<NetworkId, float> client_state;
 
-    bool serialize_entity(NetworkId, BitStream&) override { return true; }
+    bool serialize_entity(NetworkId, BitStream&) override {
+        return true;
+    }
     void deserialize_entity(NetworkId net_id, BitStream& stream) override {
         float val = 0.0f;
         (void)stream.read_float(val);
@@ -111,8 +112,10 @@ TEST_CASE("Prediction mode routes snapshots to callback instead of bridge") {
 
     // Build a fake delta packet with 2 entities
     std::vector<uint8_t> packet(4);
-    packet[0] = 0; packet[1] = 1; // snapshot_id = 1
-    packet[2] = 0; packet[3] = 2; // num_entities = 2
+    packet[0] = 0;
+    packet[1] = 1; // snapshot_id = 1
+    packet[2] = 0;
+    packet[3] = 2; // num_entities = 2
 
     for (NetworkId id : {10, 20}) {
         BitStream es;
@@ -144,8 +147,10 @@ TEST_CASE("Non-prediction mode applies snapshots via bridge") {
 
     // Build a fake delta packet
     std::vector<uint8_t> packet(4);
-    packet[0] = 0; packet[1] = 1;
-    packet[2] = 0; packet[3] = 1;
+    packet[0] = 0;
+    packet[1] = 1;
+    packet[2] = 0;
+    packet[3] = 1;
 
     NetworkId id = 99;
     BitStream es;
@@ -180,7 +185,8 @@ TEST_CASE("Client sends ticked inputs to server via RPC") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     REQUIRE(client_net.local_client_id() != 0);
@@ -208,8 +214,7 @@ TEST_CASE("Client sends ticked inputs to server via RPC") {
         serialize(input_stream, move_x);
         serialize(input_stream, move_y);
         auto span = input_stream.span();
-        input_buffer.store(sender, tick,
-                           std::span<const uint8_t>(span.data(), span.size()));
+        input_buffer.store(sender, tick, std::span<const uint8_t>(span.data(), span.size()));
     });
 
     // Client sends 3 inputs

@@ -1,8 +1,6 @@
 #include <campello_net/transport/loopback_transport.hpp>
 #include <campello_net/transport/udp_transport.hpp>
-
 #include <catch2/catch_test_macros.hpp>
-
 #include <chrono>
 #include <cstring>
 #include <string>
@@ -100,7 +98,8 @@ TEST_CASE("Reliable ordered delivery", "[transport]") {
 
     for (int i = 0; i < 5; ++i) {
         std::string msg = "packet " + std::to_string(i);
-        REQUIRE(client.send(reinterpret_cast<const uint8_t*>(msg.data()), msg.size(), PacketReliability::ReliableOrdered));
+        REQUIRE(
+            client.send(reinterpret_cast<const uint8_t*>(msg.data()), msg.size(), PacketReliability::ReliableOrdered));
     }
 
     std::vector<std::string> received;
@@ -224,8 +223,8 @@ TEST_CASE("LoopbackTransport client sends to server", "[transport][loopback]") {
     client.connect(server_addr);
 
     const char* msg = "loopback hello";
-    REQUIRE(client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1,
-                        PacketReliability::ReliableOrdered));
+    REQUIRE(
+        client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered));
 
     server.poll();
 
@@ -250,8 +249,8 @@ TEST_CASE("LoopbackTransport server broadcasts to multiple clients", "[transport
     client2.connect(server_addr);
 
     const char* msg = "broadcast";
-    REQUIRE(server.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1,
-                        PacketReliability::ReliableOrdered));
+    REQUIRE(
+        server.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered));
 
     client1.poll();
     client2.poll();
@@ -329,8 +328,7 @@ TEST_CASE("LoopbackTransport supports artificial latency", "[transport][loopback
     client.set_latency(0.05f); // 50ms one-way
 
     const char* msg = "delayed";
-    client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1,
-                PacketReliability::ReliableOrdered);
+    client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered);
 
     // Immediately poll — message should not arrive yet
     server.poll();
@@ -360,8 +358,8 @@ TEST_CASE("LoopbackTransport supports artificial packet loss", "[transport][loop
     client.set_packet_loss(1.0f); // 100% loss
 
     const char* msg = "lost";
-    REQUIRE(client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1,
-                        PacketReliability::ReliableOrdered));
+    REQUIRE(
+        client.send(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg) + 1, PacketReliability::ReliableOrdered));
 
     server.poll();
 

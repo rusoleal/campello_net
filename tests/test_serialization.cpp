@@ -1,10 +1,8 @@
+#include <array>
 #include <campello_net/serialization/bit_stream.hpp>
 #include <campello_net/serialization/quantization.hpp>
 #include <campello_net/serialization/serializable.hpp>
-
 #include <catch2/catch_test_macros.hpp>
-
-#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -209,10 +207,11 @@ TEST_CASE("Smallest-three quaternion roundtrip", "[serialization]") {
     REQUIRE(read_smallest_three(stream, decoded, 16));
 
     // Normalize and compare
-    float len = std::sqrt(decoded[0] * decoded[0] + decoded[1] * decoded[1] + decoded[2] * decoded[2]
-                          + decoded[3] * decoded[3]);
+    float len = std::sqrt(decoded[0] * decoded[0] + decoded[1] * decoded[1] + decoded[2] * decoded[2] +
+                          decoded[3] * decoded[3]);
     REQUIRE(len > 0.0f);
-    for (std::size_t i = 0; i < 4; ++i) decoded[i] /= len;
+    for (std::size_t i = 0; i < 4; ++i)
+        decoded[i] /= len;
 
     for (std::size_t i = 0; i < 4; ++i) {
         REQUIRE(std::abs(decoded[i] - quat[i]) < 0.02f);
@@ -236,11 +235,11 @@ TEST_CASE("Member-serializable struct roundtrip", "[serialization]") {
         }
 
         bool deserialize(BitStream& stream) {
-            return systems::leal::campello_net::serialization::deserialize(stream, id)
-                && systems::leal::campello_net::serialization::deserialize(stream, x)
-                && systems::leal::campello_net::serialization::deserialize(stream, y)
-                && systems::leal::campello_net::serialization::deserialize(stream, z)
-                && systems::leal::campello_net::serialization::deserialize(stream, alive);
+            return systems::leal::campello_net::serialization::deserialize(stream, id) &&
+                   systems::leal::campello_net::serialization::deserialize(stream, x) &&
+                   systems::leal::campello_net::serialization::deserialize(stream, y) &&
+                   systems::leal::campello_net::serialization::deserialize(stream, z) &&
+                   systems::leal::campello_net::serialization::deserialize(stream, alive);
         }
     };
 
@@ -263,7 +262,8 @@ TEST_CASE("Serialization size benchmark", "[serialization][benchmark]") {
 
     // Naive memcpy baseline
     std::vector<float> data(N);
-    for (std::size_t i = 0; i < N; ++i) data[i] = static_cast<float>(i) * 0.1f;
+    for (std::size_t i = 0; i < N; ++i)
+        data[i] = static_cast<float>(i) * 0.1f;
 
     auto t0 = std::chrono::high_resolution_clock::now();
     std::vector<uint8_t> baseline(N * sizeof(float));
@@ -285,7 +285,7 @@ TEST_CASE("Serialization size benchmark", "[serialization][benchmark]") {
     std::size_t base_bytes = N * sizeof(float);
     std::size_t half_bytes = stream.byte_count();
 
-    REQUIRE(half_bytes == N * 2); // 16-bit per float
+    REQUIRE(half_bytes == N * 2);     // 16-bit per float
     REQUIRE(half_bytes < base_bytes); // 50% size reduction
 
     // Verify roundtrip

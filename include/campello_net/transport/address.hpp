@@ -18,7 +18,9 @@ public:
     /// Parse an IP string and port.
     Address(const std::string& ip, uint16_t port);
 
-    [[nodiscard]] bool is_valid() const noexcept { return valid_; }
+    [[nodiscard]] bool is_valid() const noexcept {
+        return valid_;
+    }
     [[nodiscard]] uint16_t port() const noexcept;
     [[nodiscard]] std::string ip() const;
     [[nodiscard]] std::string to_string() const;
@@ -28,9 +30,15 @@ public:
     [[nodiscard]] bool operator<(const Address& other) const noexcept;
 
     // Internal accessors for transport implementations.
-    [[nodiscard]] const std::byte* raw_storage() const noexcept { return storage_.data(); }
-    [[nodiscard]] std::byte* raw_storage() noexcept { return storage_.data(); }
-    [[nodiscard]] uint8_t raw_storage_size() const noexcept { return storage_len_; }
+    [[nodiscard]] const std::byte* raw_storage() const noexcept {
+        return storage_.data();
+    }
+    [[nodiscard]] std::byte* raw_storage() noexcept {
+        return storage_.data();
+    }
+    [[nodiscard]] uint8_t raw_storage_size() const noexcept {
+        return storage_len_;
+    }
     void set_raw_storage(const std::byte* data, uint8_t len) noexcept;
 
 private:

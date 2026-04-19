@@ -1,9 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/network_manager.hpp"
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/serialization/bit_stream.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstring>
 #include <thread>
@@ -12,7 +11,9 @@ using namespace systems::leal::campello_net;
 using namespace systems::leal::campello_net::transport;
 using namespace systems::leal::campello_net::serialization;
 
-static bool float_eq(float a, float b) { return a == b; }
+static bool float_eq(float a, float b) {
+    return a == b;
+}
 
 // ── Unit tests ──────────────────────────────────────────────────────────────
 
@@ -50,7 +51,8 @@ TEST_CASE("Client calls RPC on server") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     REQUIRE(client_net.local_client_id() != 0);
@@ -102,7 +104,8 @@ TEST_CASE("Server calls RPC on client") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     ClientId client_id = client_net.local_client_id();
@@ -149,7 +152,8 @@ TEST_CASE("RPC with multiple arguments") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     REQUIRE(client_net.local_client_id() != 0);
@@ -199,7 +203,8 @@ TEST_CASE("Unregistered RPC is silently ignored") {
         server_net.poll();
         client_net.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (server_net.client_count() > 0 && client_net.local_client_id() != 0) break;
+        if (server_net.client_count() > 0 && client_net.local_client_id() != 0)
+            break;
     }
     REQUIRE(server_net.client_count() == 1);
     REQUIRE(client_net.local_client_id() != 0);

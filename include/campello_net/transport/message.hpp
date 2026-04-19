@@ -8,10 +8,10 @@ namespace systems::leal::campello_net::transport {
 
 /// Delivery reliability guarantee for a message.
 enum class Delivery : std::uint8_t {
-    Unreliable,        ///< May be lost or arrive out of order.
+    Unreliable,          ///< May be lost or arrive out of order.
     UnreliableSequenced, ///< Unreliable, but old packets are dropped if newer ones arrived.
-    ReliableOrdered,   ///< Guaranteed delivery, in order.
-    ReliableUnordered, ///< Guaranteed delivery, may arrive out of order.
+    ReliableOrdered,     ///< Guaranteed delivery, in order.
+    ReliableUnordered,   ///< Guaranteed delivery, may arrive out of order.
 };
 
 /// A user-level message envelope.

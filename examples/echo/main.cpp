@@ -1,5 +1,4 @@
 #include <campello_net/version.hpp>
-
 #include <iostream>
 #include <string>
 

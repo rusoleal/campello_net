@@ -35,8 +35,7 @@ public:
 ///
 /// Automatically tracks dirtiness. The owning system (ECS or game code)
 /// is responsible for registering it with a NetworkReplicationManager.
-template<typename T>
-class NetworkVariable {
+template <typename T> class NetworkVariable {
 public:
     NetworkVariable() = default;
     explicit NetworkVariable(const T& value) : value_(value) {}
@@ -48,12 +47,20 @@ public:
         }
     }
 
-    [[nodiscard]] const T& get() const { return value_; }
+    [[nodiscard]] const T& get() const {
+        return value_;
+    }
 
-    [[nodiscard]] bool is_dirty() const { return dirty_; }
-    void clear_dirty() { dirty_ = false; }
+    [[nodiscard]] bool is_dirty() const {
+        return dirty_;
+    }
+    void clear_dirty() {
+        dirty_ = false;
+    }
 
-    void mark_dirty() { dirty_ = true; }
+    void mark_dirty() {
+        dirty_ = true;
+    }
 
     void serialize(serialization::BitStream& stream) const {
         serialization::serialize(stream, value_);
@@ -61,7 +68,8 @@ public:
 
     bool deserialize(serialization::BitStream& stream) {
         T temp{};
-        if (!serialization::deserialize(stream, temp)) return false;
+        if (!serialization::deserialize(stream, temp))
+            return false;
         value_ = std::move(temp);
         dirty_ = true;
         return true;
@@ -81,9 +89,11 @@ public:
     /// and @p baseline. Returns false on stream underflow.
     bool deserialize_delta(serialization::BitStream& stream, T& baseline) {
         bool changed = false;
-        if (!stream.read_bool(changed)) return false;
+        if (!stream.read_bool(changed))
+            return false;
         if (changed) {
-            if (!deserialize(stream)) return false;
+            if (!deserialize(stream))
+                return false;
             baseline = value_;
         }
         return true;
@@ -220,8 +230,7 @@ public:
     /// the bridge. Instead @p callback is invoked for each entity so the
     /// game layer can compare server state against its prediction and rewind
     /// / replay if necessary.
-    using SnapshotReceivedCallback =
-        std::function<void(NetworkId net_id, serialization::BitStream& stream)>;
+    using SnapshotReceivedCallback = std::function<void(NetworkId net_id, serialization::BitStream& stream)>;
     void set_prediction_mode(bool enabled);
     void set_snapshot_received_callback(SnapshotReceivedCallback cb);
 
@@ -270,8 +279,7 @@ private:
     std::uint16_t latest_received_snapshot_ = 0;
 
     void build_and_send_snapshot(NetworkManager& net, bool full_sync);
-    void send_snapshot_to_client(ClientId client, const std::vector<EntitySnapshot>& entities,
-                                 NetworkManager& net);
+    void send_snapshot_to_client(ClientId client, const std::vector<EntitySnapshot>& entities, NetworkManager& net);
 };
 
 } // namespace systems::leal::campello_net

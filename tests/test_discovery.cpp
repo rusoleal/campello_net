@@ -1,7 +1,6 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include "campello_net/discovery/lan_discovery.hpp"
 
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -25,10 +24,9 @@ TEST_CASE("LanDiscovery beacon format round-trip") {
     });
 
     constexpr std::uint16_t DISCO_PORT = 34600;
-    constexpr std::uint16_t GAME_PORT  = 34601;
+    constexpr std::uint16_t GAME_PORT = 34601;
 
-    REQUIRE(advertiser.start_advertising(DISCO_PORT, GAME_PORT,
-                                          "Test Server", 16, 0.05f));
+    REQUIRE(advertiser.start_advertising(DISCO_PORT, GAME_PORT, "Test Server", 16, 0.05f));
     REQUIRE(listener.start_listening(DISCO_PORT));
 
     advertiser.set_current_players(4);
@@ -38,7 +36,8 @@ TEST_CASE("LanDiscovery beacon format round-trip") {
         advertiser.poll();
         listener.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (!received.empty()) break;
+        if (!received.empty())
+            break;
     }
 
     REQUIRE(!received.empty());
@@ -73,8 +72,8 @@ TEST_CASE("LanDiscovery ignores malformed beacons") {
     dest.sin_addr.s_addr = INADDR_LOOPBACK;
 
     std::uint8_t garbage[] = {0xDE, 0xAD, 0xBE, 0xEF};
-    ::sendto(sock, reinterpret_cast<const char*>(garbage), sizeof(garbage), 0,
-             reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
+    ::sendto(sock, reinterpret_cast<const char*>(garbage), sizeof(garbage), 0, reinterpret_cast<sockaddr*>(&dest),
+             sizeof(dest));
 
 #ifdef _WIN32
     ::closesocket(sock);
@@ -110,7 +109,8 @@ TEST_CASE("LanDiscovery advertiser can update player count") {
         advertiser.poll();
         listener.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (!received.empty()) break;
+        if (!received.empty())
+            break;
     }
     REQUIRE(!received.empty());
     REQUIRE(received.back().current_players == 0);
@@ -123,7 +123,8 @@ TEST_CASE("LanDiscovery advertiser can update player count") {
         advertiser.poll();
         listener.poll();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        if (!received.empty()) break;
+        if (!received.empty())
+            break;
     }
     REQUIRE(!received.empty());
     REQUIRE(received.back().current_players == 3);

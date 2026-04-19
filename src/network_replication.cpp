@@ -8,17 +8,17 @@ namespace systems::leal::campello_net {
 // SnapshotHistory
 // ════════════════════════════════════════════════════════════════════════════
 
-void SnapshotHistory::store(std::uint16_t snapshot_id,
-                            const std::vector<EntitySnapshot>& entities) {
+void SnapshotHistory::store(std::uint16_t snapshot_id, const std::vector<EntitySnapshot>& entities) {
     head_ = (head_ + 1) % MAX_SNAPSHOTS;
     snapshots_[head_].id = snapshot_id;
     snapshots_[head_].entities = entities;
-    if (count_ < MAX_SNAPSHOTS) ++count_;
+    if (count_ < MAX_SNAPSHOTS)
+        ++count_;
 }
 
-const std::vector<EntitySnapshot>* SnapshotHistory::retrieve(
-    std::uint16_t snapshot_id) const {
-    if (count_ == 0) return nullptr;
+const std::vector<EntitySnapshot>* SnapshotHistory::retrieve(std::uint16_t snapshot_id) const {
+    if (count_ == 0)
+        return nullptr;
 
     // Search backwards from most recent — acks are usually for recent snaps.
     for (std::size_t i = 0; i < count_; ++i) {
@@ -72,7 +72,8 @@ void NetworkReplicationManager::server_tick(float delta_time, NetworkManager& ne
     if (net.mode() != NetworkManager::Mode::Server && net.mode() != NetworkManager::Mode::Host) {
         return;
     }
-    if (!bridge_) return;
+    if (!bridge_)
+        return;
 
     accumulator_ += delta_time;
     const float target_dt = 1.0f / tick_rate_;
@@ -86,12 +87,10 @@ void NetworkReplicationManager::server_tick(float delta_time, NetworkManager& ne
 
 // ── Snapshot ack handling ───────────────────────────────────────────────────
 
-void NetworkReplicationManager::on_snapshot_ack(ClientId client,
-                                                std::uint16_t snapshot_id) {
+void NetworkReplicationManager::on_snapshot_ack(ClientId client, std::uint16_t snapshot_id) {
     auto& state = client_states_[client];
     // Only accept newer acks (handles uint16_t wrap-around).
-    if (!state.has_ack ||
-        static_cast<std::int16_t>(snapshot_id - state.last_acked_snapshot) > 0) {
+    if (!state.has_ack || static_cast<std::int16_t>(snapshot_id - state.last_acked_snapshot) > 0) {
         state.last_acked_snapshot = snapshot_id;
         state.has_ack = true;
     }
@@ -117,12 +116,12 @@ void NetworkReplicationManager::build_and_send_snapshot(NetworkManager& net, boo
     const bool use_interest = (interest_filter_ != nullptr);
 
     // Determine whether any client needs a full sync this tick.
-    bool force_full_sync = (full_sync_interval_ > 0) &&
-                           (snapshot_id_ % full_sync_interval_ == 0);
+    bool force_full_sync = (full_sync_interval_ > 0) && (snapshot_id_ % full_sync_interval_ == 0);
     bool any_needs_full = force_full_sync;
     if (!any_needs_full) {
         for (auto& [client_id, state] : client_states_) {
-            if (!net.is_client_connected(client_id)) continue;
+            if (!net.is_client_connected(client_id))
+                continue;
             if (!state.has_ack) {
                 any_needs_full = true;
                 break;
@@ -137,18 +136,19 @@ void NetworkReplicationManager::build_and_send_snapshot(NetworkManager& net, boo
     std::vector<EntitySnapshot> current_snap;
     const bool build_full = use_interest || (any_needs_full && entity_mgr_);
     if (build_full && entity_mgr_) {
-        entity_mgr_->for_each_entity(
-            [&current_snap, this](NetworkId id, PrefabId, EntityHandle, ClientId) {
-                serialization::BitStream entity_stream;
-                if (!bridge_->serialize_entity(id, entity_stream)) return;
-                auto span = entity_stream.span();
-                current_snap.push_back({id, std::vector<std::uint8_t>(span.begin(), span.end())});
-            });
+        entity_mgr_->for_each_entity([&current_snap, this](NetworkId id, PrefabId, EntityHandle, ClientId) {
+            serialization::BitStream entity_stream;
+            if (!bridge_->serialize_entity(id, entity_stream))
+                return;
+            auto span = entity_stream.span();
+            current_snap.push_back({id, std::vector<std::uint8_t>(span.begin(), span.end())});
+        });
     } else {
         current_snap.reserve(dirty_entities_.size());
         for (NetworkId id : dirty_entities_) {
             serialization::BitStream entity_stream;
-            if (!bridge_->serialize_entity(id, entity_stream)) continue;
+            if (!bridge_->serialize_entity(id, entity_stream))
+                continue;
             auto span = entity_stream.span();
             current_snap.push_back({id, std::vector<std::uint8_t>(span.begin(), span.end())});
         }
@@ -159,14 +159,14 @@ void NetworkReplicationManager::build_and_send_snapshot(NetworkManager& net, boo
 
     // Send to every connected client.
     for (auto& [client_id, state] : client_states_) {
-        if (!net.is_client_connected(client_id)) continue;
+        if (!net.is_client_connected(client_id))
+            continue;
 
         bool send_full = force_full_sync || !state.has_ack;
         std::vector<EntitySnapshot> to_send = current_snap;
 
         if (!send_full && state.has_ack) {
-            const std::vector<EntitySnapshot>* baseline =
-                snapshot_history_.retrieve(state.last_acked_snapshot);
+            const std::vector<EntitySnapshot>* baseline = snapshot_history_.retrieve(state.last_acked_snapshot);
 
             std::uint16_t age = snapshot_id_ - state.last_acked_snapshot;
             if (!baseline || age > max_baseline_age_) {
@@ -188,8 +188,7 @@ void NetworkReplicationManager::build_and_send_snapshot(NetworkManager& net, boo
                             state.visible_entities.erase(cur.id);
                             continue;
                         }
-                        bool newly_visible =
-                            state.visible_entities.find(cur.id) == state.visible_entities.end();
+                        bool newly_visible = state.visible_entities.find(cur.id) == state.visible_entities.end();
                         state.visible_entities.insert(cur.id);
                         if (newly_visible) {
                             to_send.push_back(cur);
@@ -225,9 +224,10 @@ void NetworkReplicationManager::build_and_send_snapshot(NetworkManager& net, boo
     dirty_entities_.clear();
 }
 
-void NetworkReplicationManager::send_snapshot_to_client(
-    ClientId client, const std::vector<EntitySnapshot>& entities, NetworkManager& net) {
-    if (entities.empty()) return;
+void NetworkReplicationManager::send_snapshot_to_client(ClientId client, const std::vector<EntitySnapshot>& entities,
+                                                        NetworkManager& net) {
+    if (entities.empty())
+        return;
 
     // Header: [snapshot_id 2][num_entities 2]
     std::vector<std::uint8_t> packet(4);
@@ -265,14 +265,14 @@ void NetworkReplicationManager::send_snapshot_to_client(
     sys_msg[2] = 0x20; // DeltaState
     std::memcpy(sys_msg.data() + 3, packet.data(), packet.size());
 
-    net.send(client, sys_msg.data(), sys_msg.size(),
-             transport::PacketReliability::Unreliable);
+    net.send(client, sys_msg.data(), sys_msg.size(), transport::PacketReliability::Unreliable);
 }
 
 // ── Client delta application ────────────────────────────────────────────────
 
 void NetworkReplicationManager::on_receive_delta(const std::uint8_t* data, std::size_t len) {
-    if (len < 4) return;
+    if (len < 4)
+        return;
 
     std::uint16_t snapshot_id = static_cast<std::uint16_t>((data[0] << 8) | data[1]);
     std::uint16_t num_entities = static_cast<std::uint16_t>((data[2] << 8) | data[3]);
@@ -287,7 +287,8 @@ void NetworkReplicationManager::on_receive_delta(const std::uint8_t* data, std::
 
     std::size_t offset = 4;
     for (std::uint16_t i = 0; i < num_entities; ++i) {
-        if (offset + 10 > len) break;
+        if (offset + 10 > len)
+            break;
 
         NetworkId net_id = 0;
         net_id |= static_cast<NetworkId>(data[offset + 0]) << 56;
@@ -302,7 +303,8 @@ void NetworkReplicationManager::on_receive_delta(const std::uint8_t* data, std::
         std::uint16_t data_len = static_cast<std::uint16_t>((data[offset + 8] << 8) | data[offset + 9]);
         offset += 10;
 
-        if (offset + data_len > len) break;
+        if (offset + data_len > len)
+            break;
 
         serialization::BitStream stream(std::span<const std::uint8_t>(data + offset, data_len));
         if (prediction_mode_ && snapshot_cb_) {

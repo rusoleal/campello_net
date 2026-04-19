@@ -1,23 +1,24 @@
 #include "campello_net/transport/udp_transport.hpp"
+
 #include "campello_net/transport/packet.hpp"
 
 #ifdef CAMPELLO_NET_PLATFORM_WIN32
-#    ifndef WIN32_LEAN_AND_MEAN
-#        define WIN32_LEAN_AND_MEAN
-#    endif
-#    ifndef NOMINMAX
-#        define NOMINMAX
-#    endif
-#    include <winsock2.h>
-#    include <ws2tcpip.h>
-#    pragma comment(lib, "ws2_32.lib")
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 #else
-#    include <arpa/inet.h>
-#    include <fcntl.h>
-#    include <netdb.h>
-#    include <netinet/in.h>
-#    include <sys/socket.h>
-#    include <unistd.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #endif
 
 #include <algorithm>
@@ -119,7 +120,8 @@ Address::Address(const std::string& ip, uint16_t port) {
 }
 
 uint16_t Address::port() const noexcept {
-    if (!valid_) return 0;
+    if (!valid_)
+        return 0;
     auto* ss = reinterpret_cast<const sockaddr_storage*>(storage_.data());
     if (ss->ss_family == AF_INET6) {
         return ntohs(reinterpret_cast<const sockaddr_in6*>(ss)->sin6_port);
@@ -131,14 +133,15 @@ uint16_t Address::port() const noexcept {
 }
 
 std::string Address::ip() const {
-    if (!valid_) return "";
+    if (!valid_)
+        return "";
     auto* ss = reinterpret_cast<const sockaddr_storage*>(storage_.data());
     if (ss->ss_family == AF_INET6) {
         auto* sin6 = reinterpret_cast<const sockaddr_in6*>(ss);
         const uint8_t* b = sin6->sin6_addr.s6_addr;
         // Detect IPv4-mapped IPv6 and return clean IPv4 string.
-        if (b[0] == 0 && b[1] == 0 && b[2] == 0 && b[3] == 0 && b[4] == 0 && b[5] == 0 &&
-            b[6] == 0 && b[7] == 0 && b[8] == 0 && b[9] == 0 && b[10] == 0xFF && b[11] == 0xFF) {
+        if (b[0] == 0 && b[1] == 0 && b[2] == 0 && b[3] == 0 && b[4] == 0 && b[5] == 0 && b[6] == 0 && b[7] == 0 &&
+            b[8] == 0 && b[9] == 0 && b[10] == 0xFF && b[11] == 0xFF) {
             char buffer[INET_ADDRSTRLEN] = {};
             inet_ntop(AF_INET, b + 12, buffer, sizeof(buffer));
             return buffer;
@@ -155,12 +158,15 @@ std::string Address::to_string() const {
 }
 
 bool Address::operator==(const Address& other) const noexcept {
-    if (valid_ != other.valid_) return false;
-    if (!valid_) return true;
+    if (valid_ != other.valid_)
+        return false;
+    if (!valid_)
+        return true;
 
     auto* sa = reinterpret_cast<const sockaddr_storage*>(storage_.data());
     auto* sb = reinterpret_cast<const sockaddr_storage*>(other.storage_.data());
-    if (sa->ss_family != sb->ss_family) return false;
+    if (sa->ss_family != sb->ss_family)
+        return false;
 
     if (sa->ss_family == AF_INET6) {
         auto* a6 = reinterpret_cast<const sockaddr_in6*>(sa);
@@ -181,22 +187,26 @@ bool Address::operator!=(const Address& other) const noexcept {
 }
 
 bool Address::operator<(const Address& other) const noexcept {
-    if (valid_ != other.valid_) return !valid_;
+    if (valid_ != other.valid_)
+        return !valid_;
 
     auto* sa = reinterpret_cast<const sockaddr_storage*>(storage_.data());
     auto* sb = reinterpret_cast<const sockaddr_storage*>(other.storage_.data());
-    if (sa->ss_family != sb->ss_family) return sa->ss_family < sb->ss_family;
+    if (sa->ss_family != sb->ss_family)
+        return sa->ss_family < sb->ss_family;
 
     if (sa->ss_family == AF_INET6) {
         auto* a6 = reinterpret_cast<const sockaddr_in6*>(sa);
         auto* b6 = reinterpret_cast<const sockaddr_in6*>(sb);
-        if (a6->sin6_port != b6->sin6_port) return ntohs(a6->sin6_port) < ntohs(b6->sin6_port);
+        if (a6->sin6_port != b6->sin6_port)
+            return ntohs(a6->sin6_port) < ntohs(b6->sin6_port);
         return std::memcmp(&a6->sin6_addr, &b6->sin6_addr, sizeof(a6->sin6_addr)) < 0;
     }
     if (sa->ss_family == AF_INET) {
         auto* a4 = reinterpret_cast<const sockaddr_in*>(sa);
         auto* b4 = reinterpret_cast<const sockaddr_in*>(sb);
-        if (a4->sin_port != b4->sin_port) return ntohs(a4->sin_port) < ntohs(b4->sin_port);
+        if (a4->sin_port != b4->sin_port)
+            return ntohs(a4->sin_port) < ntohs(b4->sin_port);
         return a4->sin_addr.s_addr < b4->sin_addr.s_addr;
     }
     return false;
@@ -235,7 +245,8 @@ void PacketHeader::set_channel(uint8_t ch) noexcept {
 }
 
 bool PacketHeader::serialize(uint8_t* buffer, std::size_t max_len) const noexcept {
-    if (max_len < SIZE) return false;
+    if (max_len < SIZE)
+        return false;
     buffer[0] = static_cast<uint8_t>(protocol_id >> 8);
     buffer[1] = static_cast<uint8_t>(protocol_id & 0xFF);
     buffer[2] = packet_type;
@@ -256,14 +267,15 @@ bool PacketHeader::serialize(uint8_t* buffer, std::size_t max_len) const noexcep
 }
 
 bool PacketHeader::deserialize(const uint8_t* buffer, std::size_t len) noexcept {
-    if (len < SIZE) return false;
+    if (len < SIZE)
+        return false;
     protocol_id = (static_cast<uint16_t>(buffer[0]) << 8) | buffer[1];
     packet_type = buffer[2];
     flags = buffer[3];
     sequence = (static_cast<uint16_t>(buffer[4]) << 8) | buffer[5];
     ack = (static_cast<uint16_t>(buffer[6]) << 8) | buffer[7];
-    ack_bits = (static_cast<uint32_t>(buffer[8]) << 24) | (static_cast<uint32_t>(buffer[9]) << 16)
-             | (static_cast<uint32_t>(buffer[10]) << 8) | buffer[11];
+    ack_bits = (static_cast<uint32_t>(buffer[8]) << 24) | (static_cast<uint32_t>(buffer[9]) << 16) |
+               (static_cast<uint32_t>(buffer[10]) << 8) | buffer[11];
     payload_len = (static_cast<uint16_t>(buffer[12]) << 8) | buffer[13];
     frag_index = buffer[14];
     frag_count = buffer[15];
@@ -311,7 +323,7 @@ struct UdpTransport::Impl {
             std::vector<BufferedPacket> receive_buffer;
 
             // Phase 3: bandwidth limiting
-            uint32_t bandwidth_limit = 0;      // bytes/sec, 0 = unlimited
+            uint32_t bandwidth_limit = 0; // bytes/sec, 0 = unlimited
             uint32_t bytes_sent_this_second = 0;
         };
         std::array<Channel, 4> channels{};
@@ -344,7 +356,9 @@ struct UdpTransport::Impl {
     uint64_t packets_received_ = 0;
     uint64_t packets_acked_ = 0;
 
-    [[nodiscard]] double now() const { return now_seconds(); }
+    [[nodiscard]] double now() const {
+        return now_seconds();
+    }
 
     bool create_socket();
     void close_socket();
@@ -354,8 +368,8 @@ struct UdpTransport::Impl {
     Connection* find_connection(const Address& addr);
     Connection& get_or_create_connection(const Address& addr);
 
-    bool send_to_connection(Connection& conn, const uint8_t* data, std::size_t length,
-                            PacketReliability reliability, uint8_t priority = 0);
+    bool send_to_connection(Connection& conn, const uint8_t* data, std::size_t length, PacketReliability reliability,
+                            uint8_t priority = 0);
     void reset_bandwidth_counters(Connection& conn, double current_time);
     bool check_and_consume_bandwidth(Connection& conn, uint8_t ch, std::size_t packet_size);
     void process_packet(const Address& from, const PacketHeader& hdr, const uint8_t* payload, std::size_t len);
@@ -383,7 +397,8 @@ bool UdpTransport::Impl::create_socket() {
     } else {
         fd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     }
-    if (fd < 0) return false;
+    if (fd < 0)
+        return false;
 
 #ifdef CAMPELLO_NET_PLATFORM_WIN32
     u_long mode = 1;
@@ -409,15 +424,18 @@ void UdpTransport::Impl::close_socket() {
 }
 
 bool UdpTransport::Impl::bind_socket(const Address& addr) {
-    if (socket_ == INVALID_SOCKET_VAL) return false;
+    if (socket_ == INVALID_SOCKET_VAL)
+        return false;
     auto* ss = reinterpret_cast<const sockaddr_storage*>(addr.raw_storage());
     return ::bind(socket_, reinterpret_cast<const sockaddr*>(ss), addr.raw_storage_size()) == 0;
 }
 
 bool UdpTransport::Impl::send_raw(const Address& to, const PacketHeader& hdr, const uint8_t* payload, std::size_t len) {
-    if (socket_ == INVALID_SOCKET_VAL) return false;
+    if (socket_ == INVALID_SOCKET_VAL)
+        return false;
     uint8_t buffer[MAX_PACKET_SIZE];
-    if (PacketHeader::SIZE + len > MAX_PACKET_SIZE) return false;
+    if (PacketHeader::SIZE + len > MAX_PACKET_SIZE)
+        return false;
 
     (void)hdr.serialize(buffer, PacketHeader::SIZE);
     if (len > 0 && payload != nullptr) {
@@ -439,13 +457,15 @@ bool UdpTransport::Impl::send_raw(const Address& to, const PacketHeader& hdr, co
 
 UdpTransport::Impl::Connection* UdpTransport::Impl::find_connection(const Address& addr) {
     for (auto& c : connections_) {
-        if (c.address == addr) return &c;
+        if (c.address == addr)
+            return &c;
     }
     return nullptr;
 }
 
 UdpTransport::Impl::Connection& UdpTransport::Impl::get_or_create_connection(const Address& addr) {
-    if (auto* c = find_connection(addr)) return *c;
+    if (auto* c = find_connection(addr))
+        return *c;
     Connection conn;
     conn.address = addr;
     conn.state = Connection::State::Connecting;
@@ -491,7 +511,8 @@ bool UdpTransport::Impl::check_and_consume_bandwidth(Connection& conn, uint8_t c
 
 bool UdpTransport::Impl::send_to_connection(Connection& conn, const uint8_t* data, std::size_t length,
                                             PacketReliability reliability, uint8_t priority) {
-    if (conn.state != Connection::State::Connected && conn.state != Connection::State::Connecting) return false;
+    if (conn.state != Connection::State::Connected && conn.state != Connection::State::Connecting)
+        return false;
 
     uint8_t ch = static_cast<uint8_t>(reliability);
     auto& channel = conn.channels[ch];
@@ -509,8 +530,8 @@ bool UdpTransport::Impl::send_to_connection(Connection& conn, const uint8_t* dat
 
         if (is_reliable(reliability)) {
             hdr.sequence = channel.local_seq++;
-            channel.pending.push_back({hdr.sequence, now(), 0,
-                                       std::vector<uint8_t>(data, data + length), false, priority});
+            channel.pending.push_back(
+                {hdr.sequence, now(), 0, std::vector<uint8_t>(data, data + length), false, priority});
         } else {
             hdr.sequence = channel.local_seq++;
             if (!check_and_consume_bandwidth(conn, ch, total_size)) {
@@ -525,12 +546,12 @@ bool UdpTransport::Impl::send_to_connection(Connection& conn, const uint8_t* dat
     // Fragmentation
     std::size_t fragment_size = MAX_PAYLOAD_SIZE;
     std::size_t num_fragments = (length + fragment_size - 1) / fragment_size;
-    if (num_fragments > 255) return false;
+    if (num_fragments > 255)
+        return false;
 
     uint16_t base_sequence = channel.local_seq++;
     if (is_reliable(reliability)) {
-        channel.pending.push_back(
-            {base_sequence, now(), 0, std::vector<uint8_t>(data, data + length), true, priority});
+        channel.pending.push_back({base_sequence, now(), 0, std::vector<uint8_t>(data, data + length), true, priority});
     }
 
     for (std::size_t i = 0; i < num_fragments; ++i) {
@@ -556,7 +577,8 @@ bool UdpTransport::Impl::send_to_connection(Connection& conn, const uint8_t* dat
         hdr.payload_len = static_cast<uint16_t>(frag_len);
 
         conn.last_send_time = now();
-        if (!send_raw(conn.address, hdr, data + offset, frag_len)) return false;
+        if (!send_raw(conn.address, hdr, data + offset, frag_len))
+            return false;
     }
     return true;
 }
@@ -594,9 +616,11 @@ void UdpTransport::Impl::send_keepalive(Connection& conn) {
 // ── Ack & resend ────────────────────────────────────────────────────────────
 
 void UdpTransport::Impl::process_acks(Connection& conn, uint8_t ch, uint16_t ack, uint32_t ack_bits) {
-    if (ch >= conn.channels.size()) return;
+    if (ch >= conn.channels.size())
+        return;
     auto& channel = conn.channels[ch];
-    if (!is_reliable(static_cast<PacketReliability>(ch))) return;
+    if (!is_reliable(static_cast<PacketReliability>(ch)))
+        return;
 
     for (auto it = channel.pending.begin(); it != channel.pending.end();) {
         uint16_t seq = it->sequence;
@@ -628,8 +652,10 @@ void UdpTransport::Impl::resend_pending(Connection& conn, double current_time) {
         auto& channel = conn.channels[ch];
         for (auto& pending : channel.pending) {
             float timeout = conn.smoothed_rtt + 4.0f * conn.rtt_variance;
-            if (timeout < 0.05f) timeout = 0.05f;
-            if (timeout > 1.0f) timeout = 1.0f;
+            if (timeout < 0.05f)
+                timeout = 0.05f;
+            if (timeout > 1.0f)
+                timeout = 1.0f;
 
             if (current_time - pending.send_time > timeout) {
                 pending.send_time = current_time;
@@ -687,11 +713,11 @@ void UdpTransport::Impl::resend_pending(Connection& conn, double current_time) {
 
 // ── Fragment helpers ────────────────────────────────────────────────────────
 
-UdpTransport::Impl::FragmentAssembly& UdpTransport::Impl::find_or_create_fragment_assembly(const Address& addr,
-                                                                                            uint16_t sequence,
-                                                                                            uint8_t frag_count) {
+UdpTransport::Impl::FragmentAssembly&
+UdpTransport::Impl::find_or_create_fragment_assembly(const Address& addr, uint16_t sequence, uint8_t frag_count) {
     for (auto& fa : fragment_assemblies_) {
-        if (fa.address == addr && fa.base_sequence == sequence) return fa;
+        if (fa.address == addr && fa.base_sequence == sequence)
+            return fa;
     }
     FragmentAssembly fa;
     fa.address = addr;
@@ -705,17 +731,19 @@ UdpTransport::Impl::FragmentAssembly& UdpTransport::Impl::find_or_create_fragmen
 }
 
 void UdpTransport::Impl::remove_fragment_assembly(const Address& addr, uint16_t sequence) {
-    fragment_assemblies_.erase(
-        std::remove_if(fragment_assemblies_.begin(), fragment_assemblies_.end(),
-                       [&](const FragmentAssembly& fa) { return fa.address == addr && fa.base_sequence == sequence; }),
-        fragment_assemblies_.end());
+    fragment_assemblies_.erase(std::remove_if(fragment_assemblies_.begin(), fragment_assemblies_.end(),
+                                              [&](const FragmentAssembly& fa) {
+                                                  return fa.address == addr && fa.base_sequence == sequence;
+                                              }),
+                               fragment_assemblies_.end());
 }
 
 void UdpTransport::Impl::cleanup_fragments(double current_time) {
-    fragment_assemblies_.erase(
-        std::remove_if(fragment_assemblies_.begin(), fragment_assemblies_.end(),
-                       [&](const FragmentAssembly& fa) { return current_time - fa.start_time > 2.0; }),
-        fragment_assemblies_.end());
+    fragment_assemblies_.erase(std::remove_if(fragment_assemblies_.begin(), fragment_assemblies_.end(),
+                                              [&](const FragmentAssembly& fa) {
+                                                  return current_time - fa.start_time > 2.0;
+                                              }),
+                               fragment_assemblies_.end());
 }
 
 // ── Receive helpers ─────────────────────────────────────────────────────────
@@ -725,7 +753,7 @@ void UdpTransport::Impl::push_receive(const Address& sender, std::vector<uint8_t
 }
 
 void UdpTransport::Impl::process_payload(Connection& conn, const PacketHeader& hdr, const uint8_t* payload,
-                                          std::size_t len) {
+                                         std::size_t len) {
     if (hdr.frag_count > 1) {
         auto& fa = find_or_create_fragment_assembly(conn.address, hdr.sequence, hdr.frag_count);
         if (fa.fragments[hdr.frag_index - 1].empty()) {
@@ -734,10 +762,12 @@ void UdpTransport::Impl::process_payload(Connection& conn, const PacketHeader& h
 
             if (fa.received_mask == ((1u << hdr.frag_count) - 1u)) {
                 std::size_t total = 0;
-                for (auto& f : fa.fragments) total += f.size();
+                for (auto& f : fa.fragments)
+                    total += f.size();
                 std::vector<uint8_t> assembled;
                 assembled.reserve(total);
-                for (auto& f : fa.fragments) assembled.insert(assembled.end(), f.begin(), f.end());
+                for (auto& f : fa.fragments)
+                    assembled.insert(assembled.end(), f.begin(), f.end());
                 push_receive(conn.address, std::move(assembled));
                 remove_fragment_assembly(conn.address, hdr.sequence);
             }
@@ -748,14 +778,16 @@ void UdpTransport::Impl::process_payload(Connection& conn, const PacketHeader& h
 }
 
 void UdpTransport::Impl::process_packet(const Address& from, const PacketHeader& hdr, const uint8_t* payload,
-                                         std::size_t len) {
-    if (hdr.protocol_id != PacketHeader::PROTOCOL_ID) return;
+                                        std::size_t len) {
+    if (hdr.protocol_id != PacketHeader::PROTOCOL_ID)
+        return;
 
     auto& conn = get_or_create_connection(from);
     conn.last_recv_time = now();
 
     uint8_t ch = hdr.channel();
-    if (ch >= conn.channels.size()) return;
+    if (ch >= conn.channels.size())
+        return;
     auto& channel = conn.channels[ch];
 
     process_acks(conn, ch, hdr.ack, hdr.ack_bits);
@@ -807,7 +839,8 @@ void UdpTransport::Impl::process_packet(const Address& from, const PacketHeader&
         channel.ack_bits = (channel.ack_bits << 1) | 1;
         process_payload(conn, hdr, payload, len);
     } else if (reliability == PacketReliability::UnreliableSequenced) {
-        if (seq <= channel.remote_seq) return;
+        if (seq <= channel.remote_seq)
+            return;
         channel.remote_seq = seq;
         process_payload(conn, hdr, payload, len);
     } else {
@@ -828,11 +861,14 @@ void UdpTransport::Impl::cleanup_connections(double current_time) {
 
 UdpTransport::UdpTransport() : impl_(std::make_unique<Impl>()) {}
 
-UdpTransport::~UdpTransport() { disconnect(); }
+UdpTransport::~UdpTransport() {
+    disconnect();
+}
 
 bool UdpTransport::bind(const Address& address) {
     disconnect();
-    if (!impl_->create_socket()) return false;
+    if (!impl_->create_socket())
+        return false;
     if (!impl_->bind_socket(address)) {
         impl_->close_socket();
         return false;
@@ -844,7 +880,8 @@ bool UdpTransport::bind(const Address& address) {
 
 bool UdpTransport::connect(const Address& address) {
     disconnect();
-    if (!impl_->create_socket()) return false;
+    if (!impl_->create_socket())
+        return false;
 
     Address any(0);
     if (!impl_->bind_socket(any)) {
@@ -866,7 +903,8 @@ bool UdpTransport::connect(const Address& address) {
 }
 
 void UdpTransport::disconnect() {
-    if (!impl_) return;
+    if (!impl_)
+        return;
     for (auto& conn : impl_->connections_) {
         if (conn.state == Impl::Connection::State::Connected) {
             impl_->send_disconnect(conn.address);
@@ -884,7 +922,8 @@ void UdpTransport::disconnect() {
 }
 
 bool UdpTransport::is_connected() const noexcept {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     if (impl_->mode_ == Impl::Mode::Client) {
         return !impl_->connections_.empty() && impl_->connections_[0].state == Impl::Connection::State::Connected;
     }
@@ -892,15 +931,18 @@ bool UdpTransport::is_connected() const noexcept {
 }
 
 bool UdpTransport::send(const uint8_t* data, std::size_t length, PacketReliability reliability) {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     if (impl_->mode_ == Impl::Mode::Client) {
-        if (impl_->connections_.empty()) return false;
+        if (impl_->connections_.empty())
+            return false;
         return impl_->send_to_connection(impl_->connections_[0], data, length, reliability);
     }
     if (impl_->mode_ == Impl::Mode::Server) {
         bool any = false;
         for (auto& conn : impl_->connections_) {
-            if (impl_->send_to_connection(conn, data, length, reliability)) any = true;
+            if (impl_->send_to_connection(conn, data, length, reliability))
+                any = true;
         }
         return any;
     }
@@ -909,7 +951,8 @@ bool UdpTransport::send(const uint8_t* data, std::size_t length, PacketReliabili
 
 bool UdpTransport::send_to(const Address& address, const uint8_t* data, std::size_t length,
                            PacketReliability reliability) {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     if (auto* conn = impl_->find_connection(address)) {
         return impl_->send_to_connection(*conn, data, length, reliability);
     }
@@ -917,7 +960,8 @@ bool UdpTransport::send_to(const Address& address, const uint8_t* data, std::siz
 }
 
 void UdpTransport::poll() {
-    if (!impl_ || impl_->socket_ == INVALID_SOCKET_VAL) return;
+    if (!impl_ || impl_->socket_ == INVALID_SOCKET_VAL)
+        return;
 
     double t = impl_->now();
 
@@ -931,16 +975,20 @@ void UdpTransport::poll() {
         if (received < 0) {
 #ifdef CAMPELLO_NET_PLATFORM_WIN32
             int err = WSAGetLastError();
-            if (err == WSAEWOULDBLOCK) break;
+            if (err == WSAEWOULDBLOCK)
+                break;
 #else
-            if (errno == EAGAIN || errno == EWOULDBLOCK) break;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
 #endif
             break;
         }
-        if (received < static_cast<int>(PacketHeader::SIZE)) continue;
+        if (received < static_cast<int>(PacketHeader::SIZE))
+            continue;
 
         PacketHeader hdr;
-        if (!hdr.deserialize(buffer, PacketHeader::SIZE)) continue;
+        if (!hdr.deserialize(buffer, PacketHeader::SIZE))
+            continue;
 
         Address from_addr;
         from_addr.set_raw_storage(reinterpret_cast<const std::byte*>(&from_ss), static_cast<uint8_t>(from_len));
@@ -965,7 +1013,8 @@ void UdpTransport::poll() {
 }
 
 bool UdpTransport::pop_receive(uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     if (impl_->receive_read_idx_ >= impl_->receive_queue_.size()) {
         impl_->receive_queue_.clear();
         impl_->receive_read_idx_ = 0;
@@ -980,21 +1029,25 @@ bool UdpTransport::pop_receive(uint8_t* buffer, std::size_t max_length, std::siz
 }
 
 float UdpTransport::rtt() const noexcept {
-    if (!impl_ || impl_->connections_.empty()) return 0.0f;
+    if (!impl_ || impl_->connections_.empty())
+        return 0.0f;
     float sum = 0.0f;
-    for (auto& c : impl_->connections_) sum += c.smoothed_rtt;
+    for (auto& c : impl_->connections_)
+        sum += c.smoothed_rtt;
     return sum / static_cast<float>(impl_->connections_.size());
 }
 
 float UdpTransport::packet_loss() const noexcept {
-    if (!impl_ || impl_->packets_sent_ == 0) return 0.0f;
+    if (!impl_ || impl_->packets_sent_ == 0)
+        return 0.0f;
     uint64_t unacked = impl_->packets_sent_ > impl_->packets_acked_ ? impl_->packets_sent_ - impl_->packets_acked_ : 0;
     return static_cast<float>(unacked) / static_cast<float>(impl_->packets_sent_);
 }
 
 bool UdpTransport::send_with_priority(const Address& address, const uint8_t* data, std::size_t length,
                                       PacketReliability reliability, uint8_t priority) {
-    if (!impl_) return false;
+    if (!impl_)
+        return false;
     if (auto* conn = impl_->find_connection(address)) {
         return impl_->send_to_connection(*conn, data, length, reliability, priority);
     }
@@ -1002,15 +1055,17 @@ bool UdpTransport::send_with_priority(const Address& address, const uint8_t* dat
 }
 
 void UdpTransport::set_connection_bandwidth_limit(const Address& address, std::uint32_t bytes_per_second) {
-    if (!impl_) return;
+    if (!impl_)
+        return;
     if (auto* conn = impl_->find_connection(address)) {
         conn->global_bandwidth_limit = bytes_per_second;
     }
 }
 
 void UdpTransport::set_channel_bandwidth_limit(const Address& address, PacketReliability reliability,
-                                                std::uint32_t bytes_per_second) {
-    if (!impl_) return;
+                                               std::uint32_t bytes_per_second) {
+    if (!impl_)
+        return;
     if (auto* conn = impl_->find_connection(address)) {
         uint8_t ch = static_cast<uint8_t>(reliability);
         if (ch < conn->channels.size()) {
@@ -1020,7 +1075,8 @@ void UdpTransport::set_channel_bandwidth_limit(const Address& address, PacketRel
 }
 
 float UdpTransport::get_connection_rtt(const Address& address) const noexcept {
-    if (!impl_) return 0.0f;
+    if (!impl_)
+        return 0.0f;
     if (auto* conn = impl_->find_connection(address)) {
         return conn->smoothed_rtt;
     }
@@ -1028,7 +1084,8 @@ float UdpTransport::get_connection_rtt(const Address& address) const noexcept {
 }
 
 float UdpTransport::get_connection_packet_loss(const Address& address) const noexcept {
-    if (!impl_) return 0.0f;
+    if (!impl_)
+        return 0.0f;
     if (auto* conn = impl_->find_connection(address)) {
         // Per-connection packet loss is approximate: ratio of pending packets to total sent
         uint64_t total_pending = 0;
@@ -1036,7 +1093,8 @@ float UdpTransport::get_connection_packet_loss(const Address& address) const noe
             total_pending += ch.pending.size();
         }
         // Heuristic: if we have no send history, return 0
-        if (total_pending == 0) return 0.0f;
+        if (total_pending == 0)
+            return 0.0f;
         // This is a rough estimate based on pending unacked packets
         // A more accurate measure would require per-connection sent/acked counters
         return static_cast<float>(total_pending) / (static_cast<float>(total_pending) + 100.0f);

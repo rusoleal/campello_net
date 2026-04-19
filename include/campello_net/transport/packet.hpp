@@ -8,10 +8,10 @@ namespace systems::leal::campello_net::transport {
 
 /// Reliability semantics for packet delivery.
 enum class PacketReliability : uint8_t {
-    Unreliable = 0,       ///< Fire-and-forget. May be lost or reordered.
-    ReliableOrdered,      ///< Guaranteed delivery, in-order.
-    ReliableUnordered,    ///< Guaranteed delivery, any order.
-    UnreliableSequenced,  ///< Unreliable, but drop stale packets.
+    Unreliable = 0,      ///< Fire-and-forget. May be lost or reordered.
+    ReliableOrdered,     ///< Guaranteed delivery, in-order.
+    ReliableUnordered,   ///< Guaranteed delivery, any order.
+    UnreliableSequenced, ///< Unreliable, but drop stale packets.
 };
 
 /// Internal packet types (used on the wire).
@@ -29,14 +29,14 @@ struct PacketHeader {
     static constexpr std::size_t SIZE = 16;
 
     uint16_t protocol_id = PROTOCOL_ID;
-    uint8_t  packet_type = 0;   // underlying PacketType
-    uint8_t  flags = 0;         // reliability << 2 | channel
-    uint16_t sequence = 0;      // channel sequence number
-    uint16_t ack = 0;           // last received sequence
-    uint32_t ack_bits = 0;      // bitmask of prior 32 sequences
-    uint16_t payload_len = 0;   // bytes following header
-    uint8_t  frag_index = 0;    // 0 = not fragmented
-    uint8_t  frag_count = 0;    // total fragments
+    uint8_t packet_type = 0;  // underlying PacketType
+    uint8_t flags = 0;        // reliability << 2 | channel
+    uint16_t sequence = 0;    // channel sequence number
+    uint16_t ack = 0;         // last received sequence
+    uint32_t ack_bits = 0;    // bitmask of prior 32 sequences
+    uint16_t payload_len = 0; // bytes following header
+    uint8_t frag_index = 0;   // 0 = not fragmented
+    uint8_t frag_count = 0;   // total fragments
 
     [[nodiscard]] PacketReliability reliability() const noexcept;
     [[nodiscard]] uint8_t channel() const noexcept;

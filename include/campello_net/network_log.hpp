@@ -42,18 +42,14 @@ inline void log_if(LogLevel level, const std::string& message) {
 #define CAMPELLO_NET_MIN_LOG_LEVEL 0
 #endif
 
-#define CAMPELLO_NET_LOG(level, msg)                                              \
-    do {                                                                          \
-        if (static_cast<int>(level) >= CAMPELLO_NET_MIN_LOG_LEVEL) {              \
-            ::systems::leal::campello_net::detail::log_if(level, msg);            \
-        }                                                                         \
+#define CAMPELLO_NET_LOG(level, msg)                                                                                   \
+    do {                                                                                                               \
+        if (static_cast<int>(level) >= CAMPELLO_NET_MIN_LOG_LEVEL) {                                                   \
+            ::systems::leal::campello_net::detail::log_if(level, msg);                                                 \
+        }                                                                                                              \
     } while (0)
 
-#define CAMPELLO_NET_LOGV(msg) \
-    CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Verbose, msg)
-#define CAMPELLO_NET_LOGI(msg) \
-    CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Info, msg)
-#define CAMPELLO_NET_LOGW(msg) \
-    CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Warning, msg)
-#define CAMPELLO_NET_LOGE(msg) \
-    CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Error, msg)
+#define CAMPELLO_NET_LOGV(msg) CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Verbose, msg)
+#define CAMPELLO_NET_LOGI(msg) CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Info, msg)
+#define CAMPELLO_NET_LOGW(msg) CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Warning, msg)
+#define CAMPELLO_NET_LOGE(msg) CAMPELLO_NET_LOG(::systems::leal::campello_net::LogLevel::Error, msg)

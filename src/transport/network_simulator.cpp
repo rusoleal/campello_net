@@ -36,13 +36,15 @@ struct NetworkSimulator::Impl {
     }
 
     [[nodiscard]] bool should_drop() {
-        if (packet_loss <= 0.0f) return false;
+        if (packet_loss <= 0.0f)
+            return false;
         std::uniform_real_distribution<float> dist(0.0f, 1.0f);
         return dist(rng) < packet_loss;
     }
 
     [[nodiscard]] bool should_duplicate() {
-        if (duplication <= 0.0f) return false;
+        if (duplication <= 0.0f)
+            return false;
         std::uniform_real_distribution<float> dist(0.0f, 1.0f);
         return dist(rng) < duplication;
     }
@@ -61,8 +63,7 @@ struct NetworkSimulator::Impl {
     }
 };
 
-NetworkSimulator::NetworkSimulator(std::unique_ptr<ITransport> inner)
-    : impl_(std::make_unique<Impl>()) {
+NetworkSimulator::NetworkSimulator(std::unique_ptr<ITransport> inner) : impl_(std::make_unique<Impl>()) {
     impl_->inner = std::move(inner);
 }
 
@@ -89,7 +90,8 @@ bool NetworkSimulator::is_connected() const noexcept {
 }
 
 bool NetworkSimulator::send(const uint8_t* data, std::size_t length, PacketReliability reliability) {
-    if (impl_->should_drop()) return true; // drop silently
+    if (impl_->should_drop())
+        return true; // drop silently
 
     double deliver = impl_->now() + impl_->calculate_delay_s();
 
@@ -110,7 +112,8 @@ bool NetworkSimulator::send(const uint8_t* data, std::size_t length, PacketRelia
 
 bool NetworkSimulator::send_to(const Address& address, const uint8_t* data, std::size_t length,
                                PacketReliability reliability) {
-    if (impl_->should_drop()) return true; // drop silently
+    if (impl_->should_drop())
+        return true; // drop silently
 
     double deliver = impl_->now() + impl_->calculate_delay_s();
 
@@ -139,9 +142,11 @@ void NetworkSimulator::poll() {
         uint8_t buffer[2048];
         std::size_t len = 0;
         Address sender;
-        if (!impl_->inner->pop_receive(buffer, sizeof(buffer), len, sender)) break;
+        if (!impl_->inner->pop_receive(buffer, sizeof(buffer), len, sender))
+            break;
 
-        if (impl_->should_drop()) continue;
+        if (impl_->should_drop())
+            continue;
 
         double deliver = impl_->now() + impl_->calculate_delay_s();
         Impl::QueuedPacket pkt;
@@ -179,8 +184,9 @@ void NetworkSimulator::poll() {
 }
 
 bool NetworkSimulator::pop_receive(uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
-                                    Address& out_sender) {
-    if (impl_->ready_queue.empty()) return false;
+                                   Address& out_sender) {
+    if (impl_->ready_queue.empty())
+        return false;
 
     auto& pkt = impl_->ready_queue.front();
     out_length = std::min(max_length, pkt.data.size());
