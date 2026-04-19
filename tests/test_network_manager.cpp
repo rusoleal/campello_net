@@ -651,7 +651,7 @@ TEST_CASE("add_local_client returns 0 in client mode") {
 
 // ── LoopbackTransport integration tests ─────────────────────────────────────
 
-TEST_CASE("NetworkManager server/client over LoopbackTransport — no sockets, no sleep") {
+TEST_CASE("NetworkManager server/client over LoopbackTransport without sockets or sleep") {
     auto hub = std::make_shared<LoopbackHub>();
 
     // Server
