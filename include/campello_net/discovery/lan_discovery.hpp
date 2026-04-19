@@ -2,6 +2,7 @@
 
 #include "campello_net/transport/address.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>

@@ -43,15 +43,15 @@ target_include_directories(
 
 # Platform detection & compiler flags
 if(WIN32)
-    target_compile_definitions(campello_net INTERFACE CAMPELLO_NET_PLATFORM_WIN32)
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_WIN32)
 elseif(ANDROID)
-    target_compile_definitions(campello_net INTERFACE CAMPELLO_NET_PLATFORM_ANDROID)
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_ANDROID)
 elseif(IOS)
-    target_compile_definitions(campello_net INTERFACE CAMPELLO_NET_PLATFORM_IOS)
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_IOS)
 elseif(APPLE)
-    target_compile_definitions(campello_net INTERFACE CAMPELLO_NET_PLATFORM_MACOS)
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_MACOS)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_compile_definitions(campello_net INTERFACE CAMPELLO_NET_PLATFORM_LINUX)
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_LINUX)
 endif()
 
 if(MSVC)
