@@ -1,0 +1,35 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+.cache/
+compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Test / coverage
+Testing/
+coverage/
+*.gcno
+*.gcda
+
+# Package managers
+vcpkg_installed/
+conan/

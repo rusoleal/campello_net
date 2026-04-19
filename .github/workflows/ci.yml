@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Debug, Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCAMPELLO_NET_BUILD_TESTS=ON -DCAMPELLO_NET_BUILD_EXAMPLES=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Test
+        working-directory: build
+        run: ctest -C ${{ matrix.build_type }} --output-on-failure
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure iOS
+        run: |
+          cmake -B build-ios \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCAMPELLO_NET_BUILD_TESTS=OFF \
+            -DCAMPELLO_NET_BUILD_EXAMPLES=OFF
+
+      - name: Build iOS
+        run: cmake --build build-ios --config Release --parallel
+
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find include src tests examples -name '*.cpp' -o -name '*.hpp' | xargs clang-format --dry-run -Werror
