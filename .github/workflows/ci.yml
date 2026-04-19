@@ -46,6 +46,31 @@ jobs:
       - name: Build iOS
         run: cmake --build build-ios --config Release --parallel
 
+  build-android:
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+        build_type: [Debug, Release]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Android (${{ matrix.abi }})
+        run: |
+          cmake -B build-android \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=${{ matrix.abi }} \
+            -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCAMPELLO_NET_BUILD_TESTS=OFF \
+            -DCAMPELLO_NET_BUILD_EXAMPLES=OFF
+
+      - name: Build Android (${{ matrix.abi }})
+        run: cmake --build build-android --config ${{ matrix.build_type }} --parallel
+
   format-check:
     runs-on: ubuntu-latest
     steps:
