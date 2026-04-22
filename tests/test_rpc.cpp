@@ -18,6 +18,7 @@ static bool float_eq(float a, float b) {
 
 // ── Mock bridges ────────────────────────────────────────────────────────────
 
+namespace {
 struct MockEntityBridge : INetworkEntityBridge {
     std::vector<EntityHandle> destroys;
     EntityHandle next_handle = 1000;
@@ -29,6 +30,7 @@ struct MockEntityBridge : INetworkEntityBridge {
         destroys.push_back(handle);
     }
 };
+} // namespace
 
 // ── Unit tests ──────────────────────────────────────────────────────────────
 

@@ -33,6 +33,7 @@ struct TestSnapshotBuilder {
 
 // ── Mock entity bridge ──────────────────────────────────────────────────────
 
+namespace {
 struct MockEntityBridge : INetworkEntityBridge {
     struct SpawnCall {
         PrefabId prefab = 0;
@@ -53,9 +54,11 @@ struct MockEntityBridge : INetworkEntityBridge {
         destroys.push_back(handle);
     }
 };
+} // namespace
 
 // ── Mock replication bridge ─────────────────────────────────────────────────
 
+namespace {
 struct MockReplicationBridge : INetworkReplicationBridge {
     std::unordered_map<NetworkId, float> server_state;
     std::unordered_map<NetworkId, float> client_state;
@@ -244,6 +247,7 @@ TEST_CASE("Server replicates entity state to client") {
     client_net.disconnect();
     server_net.stop();
 }
+} // namespace
 
 TEST_CASE("Replication bandwidth stays under limit for 1000 entities") {
     // Unit test: measure snapshot size for 1000 entities
