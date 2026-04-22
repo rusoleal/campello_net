@@ -24,9 +24,9 @@ public:
     void unbind_server(const Address& addr);
     bool connect_client(const Address& server_addr, LoopbackTransport* client, Address& out_client_addr);
     void disconnect_client(const Address& client_addr);
-    void deliver(const Address& to, const Address& from, const uint8_t* data, std::size_t len,
+    void deliver(const Address& to, const Address& from, const std::uint8_t* data, std::size_t len,
                  PacketReliability reliability);
-    void broadcast(const Address& server_addr, const Address& from, const uint8_t* data, std::size_t len,
+    void broadcast(const Address& server_addr, const Address& from, const std::uint8_t* data, std::size_t len,
                    PacketReliability reliability);
 
 private:
@@ -71,13 +71,13 @@ public:
     void disconnect() override;
     [[nodiscard]] bool is_connected() const noexcept override;
 
-    bool send(const uint8_t* data, std::size_t length, PacketReliability reliability) override;
-    bool send_to(const Address& address, const uint8_t* data, std::size_t length,
+    bool send(const std::uint8_t* data, std::size_t length, PacketReliability reliability) override;
+    bool send_to(const Address& address, const std::uint8_t* data, std::size_t length,
                  PacketReliability reliability) override;
 
     void poll() override;
 
-    bool pop_receive(uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) override;
+    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) override;
 
     [[nodiscard]] float rtt() const noexcept override;
     [[nodiscard]] float packet_loss() const noexcept override;
@@ -95,7 +95,7 @@ private:
     std::unique_ptr<Impl> impl_;
 
     friend class LoopbackHub;
-    void enqueue_pending(const Address& sender, const uint8_t* data, std::size_t len, PacketReliability reliability);
+    void enqueue_pending(const Address& sender, const std::uint8_t* data, std::size_t len, PacketReliability reliability);
 };
 
 } // namespace systems::leal::campello_net::transport

@@ -1,5 +1,6 @@
 #include "campello_net/network_manager.hpp"
 
+#include "campello_net/connection_token.hpp"
 #include "campello_net/network_entity.hpp"
 #include "campello_net/network_log.hpp"
 #include "campello_net/network_replication.hpp"
@@ -108,6 +109,9 @@ struct NetworkManager::Impl {
     NetworkTime net_time;
     double last_time_sync = 0.0;
     bool awaiting_accept = false;
+
+    // Client-side connection token presented during handshake
+    std::vector<std::uint8_t> client_token;
 
     // Host mode loopback
     std::vector<ReceivedMessage> host_local_recv_queue;
@@ -237,12 +241,29 @@ void NetworkManager::Impl::process_system_message(ClientId sender_id, const tran
             return;
         }
 
-        bool approved = true;
+        // ── Connection token validation ──
+        bool token_valid = true;
+        if (config.require_connection_token) {
+            token_valid = false;
+            if (len >= ConnectionToken::SIZE) {
+                std::uint32_t now = static_cast<std::uint32_t>(
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count());
+                token_valid = ConnectionToken::validate(data, config.connection_token_secret.data(), now);
+                if (token_valid) {
+                    // Shrink len so the token bytes are not passed to on_approval
+                    len -= ConnectionToken::SIZE;
+                    data += ConnectionToken::SIZE;
+                }
+            }
+        }
+
+        bool approved = token_valid;
         std::vector<std::uint8_t> auth_data;
         if (len > 0) {
             auth_data.assign(data, data + len);
         }
-        if (on_approval) {
+        if (approved && on_approval) {
             approved = on_approval(sender_addr, auth_data);
         }
 
@@ -576,8 +597,17 @@ void NetworkManager::Impl::poll_client_time_sync() {
 void NetworkManager::Impl::send_connect_request() {
     if (!transport)
         return;
-    std::array<std::uint8_t, 3> packet{SYS_MAGIC[0], SYS_MAGIC[1], static_cast<std::uint8_t>(SysType::ConnectRequest)};
-    transport->send(packet.data(), packet.size(), transport::PacketReliability::ReliableOrdered);
+    if (!client_token.empty()) {
+        std::vector<std::uint8_t> packet(3 + client_token.size());
+        packet[0] = SYS_MAGIC[0];
+        packet[1] = SYS_MAGIC[1];
+        packet[2] = static_cast<std::uint8_t>(SysType::ConnectRequest);
+        std::memcpy(packet.data() + 3, client_token.data(), client_token.size());
+        transport->send(packet.data(), packet.size(), transport::PacketReliability::ReliableOrdered);
+    } else {
+        std::array<std::uint8_t, 3> packet{SYS_MAGIC[0], SYS_MAGIC[1], static_cast<std::uint8_t>(SysType::ConnectRequest)};
+        transport->send(packet.data(), packet.size(), transport::PacketReliability::ReliableOrdered);
+    }
     awaiting_accept = true;
 }
 
@@ -957,6 +987,29 @@ void NetworkManager::disconnect() {
             disconnect_client(impl_->local_client_id);
         }
     }
+}
+
+void NetworkManager::set_connection_token(const std::uint8_t token[ConnectionToken::SIZE]) {
+    impl_->client_token.assign(token, token + ConnectionToken::SIZE);
+}
+
+bool NetworkManager::generate_connection_token(std::uint8_t out_token[ConnectionToken::SIZE],
+                                               std::uint32_t expiry_seconds) const {
+    bool has_secret = false;
+    for (std::size_t i = 0; i < 32; ++i) {
+        if (impl_->config.connection_token_secret[i] != 0) {
+            has_secret = true;
+            break;
+        }
+    }
+    if (!has_secret)
+        return false;
+
+    std::uint32_t now = static_cast<std::uint32_t>(
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
+    return ConnectionToken::generate(out_token, impl_->config.connection_token_secret.data(),
+                                     expiry_seconds, 0, now);
 }
 
 // ── Queries ─────────────────────────────────────────────────────────────────

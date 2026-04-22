@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -29,6 +30,26 @@ public:
 
     /// Client-side: apply deserialized state to the local entity proxy.
     virtual void deserialize_entity(NetworkId net_id, serialization::BitStream& stream) = 0;
+
+    /// Client-side: interpolate between two snapshots for smooth rendering.
+    /// Default implementation falls back to the newer state.
+    virtual void interpolate_entity(NetworkId net_id, serialization::BitStream& older,
+                                    serialization::BitStream& newer, float t) {
+        (void)net_id;
+        (void)older;
+        (void)t;
+        deserialize_entity(net_id, newer);
+    }
+
+    /// Client-side: briefly predict forward when the newest snapshot is too old.
+    /// @p delta_time is how far ahead of the newest snapshot we are rendering (seconds).
+    /// Default implementation falls back to the newest state.
+    virtual void extrapolate_entity(NetworkId net_id, serialization::BitStream& newest,
+                                    float delta_time) {
+        (void)net_id;
+        (void)delta_time;
+        deserialize_entity(net_id, newest);
+    }
 };
 
 /// A replicated scalar variable (similar to Unity NGO's NetworkVariable).
@@ -106,16 +127,19 @@ private:
 
 // ── Snapshot history (server-side) ──────────────────────────────────────────
 
+/// Non-owning view of an entity's serialized state within a snapshot blob.
 struct EntitySnapshot {
     NetworkId id = 0;
-    std::vector<std::uint8_t> data;
+    std::span<const std::uint8_t> data;
 };
 
 class SnapshotHistory {
 public:
     static constexpr std::size_t MAX_SNAPSHOTS = 128;
 
-    void store(std::uint16_t snapshot_id, const std::vector<EntitySnapshot>& entities);
+    /// Store a snapshot. The @p entities list is expected to reference a
+    /// contiguous blob that outlives this call (the history copies the blob).
+    void store(std::uint16_t snapshot_id, std::span<const EntitySnapshot> entities);
 
     /// Retrieve a previously stored snapshot. Returns nullptr if too old or unknown.
     [[nodiscard]] const std::vector<EntitySnapshot>* retrieve(std::uint16_t snapshot_id) const;
@@ -123,8 +147,46 @@ public:
 private:
     struct Snapshot {
         std::uint16_t id = 0;
-        std::vector<EntitySnapshot> entities;
+        std::vector<std::uint8_t> blob;         ///< Owns the serialized entity data.
+        std::vector<EntitySnapshot> entities;   ///< Spans into @p blob.
     };
+    std::array<Snapshot, MAX_SNAPSHOTS> snapshots_{};
+    std::size_t count_ = 0;
+    std::size_t head_ = 0; ///< Index of the most recently stored snapshot.
+};
+
+// ── Client-side snapshot buffer (Phase 9) ───────────────────────────────────
+
+/// Ring buffer of received snapshots for client-side interpolation.
+class ClientSnapshotBuffer {
+public:
+    static constexpr std::size_t MAX_SNAPSHOTS = 128;
+
+    struct Snapshot {
+        std::uint16_t snapshot_id = 0;
+        float receive_time = 0.0f;
+        std::vector<std::uint8_t> blob;         ///< Owns the serialized entity data.
+        std::vector<EntitySnapshot> entities;   ///< Spans into @p blob.
+    };
+
+    void store(std::uint16_t snapshot_id, float receive_time, std::span<const EntitySnapshot> entities);
+
+    /// Find the two snapshots bracketing @p target_time.
+    /// Returns false if fewer than two snapshots are stored.
+    /// @p t is the blend factor in [0, 1] (clamped at edges).
+    [[nodiscard]] bool find_bracketing(float target_time, const Snapshot*& out_older,
+                                       const Snapshot*& out_newer, float& t) const;
+
+    /// Search for an entity inside a specific snapshot. Returns an empty span if absent.
+    [[nodiscard]] std::span<const std::uint8_t> find_entity(const Snapshot& snap,
+                                                             NetworkId net_id) const;
+
+    void clear();
+
+    [[nodiscard]] std::size_t size() const noexcept;
+    [[nodiscard]] bool empty() const noexcept;
+
+private:
     std::array<Snapshot, MAX_SNAPSHOTS> snapshots_{};
     std::size_t count_ = 0;
     std::size_t head_ = 0; ///< Index of the most recently stored snapshot.
@@ -163,11 +225,11 @@ private:
 ///     time window to smooth out jitter
 ///
 /// Packet format (unreliable, system message type 0x20):
-///   [snapshot_id: uint16_t]
-///   [num_entities: uint16_t]
+///   [snapshot_id: std::uint16_t]
+///   [num_entities: std::uint16_t]
 ///   for each entity:
-///     [net_id: uint64_t]
-///     [data_len: uint16_t]
+///     [net_id: std::uint64_t]
+///     [data_len: std::uint16_t]
 ///     [data: BitStream blob]
 class NetworkReplicationManager {
 public:
@@ -241,6 +303,23 @@ public:
     /// The tick of the latest received snapshot (0 if none).
     [[nodiscard]] std::uint16_t latest_received_snapshot() const noexcept;
 
+    // ── Interpolation (Phase 9) ──────────────────────────────────────────────
+
+    /// Enable snapshot buffering and interpolation.
+    void set_interpolation_enabled(bool enabled) noexcept;
+    [[nodiscard]] bool interpolation_enabled() const noexcept;
+
+    /// Call every render frame to apply interpolated state to the bridge.
+    void client_interpolate(float render_time);
+
+    /// Query interpolated state for a single entity without applying it.
+    /// The returned BitStreams point into the internal buffer and are only valid
+    /// until the next store or until the buffer wraps.
+    [[nodiscard]] bool query_interpolated_entity(NetworkId net_id, float render_time,
+                                                  serialization::BitStream& older,
+                                                  serialization::BitStream& newer,
+                                                  float& t) const;
+
     // ── Queries ──────────────────────────────────────────────────────────────
 
     [[nodiscard]] std::uint16_t current_snapshot_id() const noexcept;
@@ -272,11 +351,23 @@ private:
     std::uint16_t last_received_snapshot_ = 0;
     float client_ack_accumulator_ = 0.0f;
 
+    // Interpolation state (Phase 9)
+    bool interpolation_enabled_ = false;
+    ClientSnapshotBuffer client_snapshot_buffer_;
+    float client_time_ = 0.0f;
+
     // Prediction state (Phase 10)
     bool prediction_mode_ = false;
     SnapshotReceivedCallback snapshot_cb_;
     float interpolation_delay_ = 0.0f;
     std::uint16_t latest_received_snapshot_ = 0;
+
+    // Scratch buffers reused every tick to avoid allocations on hot paths.
+    serialization::BitStream scratch_stream_;
+    std::vector<std::uint8_t> scratch_blob_;
+    std::vector<EntitySnapshot> scratch_snap_;
+    std::vector<EntitySnapshot> scratch_delta_;
+    std::vector<EntitySnapshot> scratch_filtered_;
 
     void build_and_send_snapshot(NetworkManager& net, bool full_sync);
     void send_snapshot_to_client(ClientId client, const std::vector<EntitySnapshot>& entities, NetworkManager& net);

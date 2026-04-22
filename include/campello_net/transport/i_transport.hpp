@@ -28,13 +28,13 @@ public:
     [[nodiscard]] virtual bool is_connected() const noexcept = 0;
 
     /// Send data to the remote peer (client mode) or to all connected peers (server mode).
-    virtual bool send(const uint8_t* data, std::size_t length, PacketReliability reliability) = 0;
+    virtual bool send(const std::uint8_t* data, std::size_t length, PacketReliability reliability) = 0;
 
     /// Send data to a specific connected peer (server mode).
     ///
     /// Transports that do not support targeted sends (e.g. pure datagram
     /// broadcast layers) may return false.
-    virtual bool send_to(const Address& address, const uint8_t* data, std::size_t length,
+    virtual bool send_to(const Address& address, const std::uint8_t* data, std::size_t length,
                          PacketReliability reliability) {
         (void)address;
         (void)data;
@@ -47,7 +47,7 @@ public:
     virtual void poll() = 0;
 
     /// Pop one received user payload. Returns false when queue is empty.
-    virtual bool pop_receive(uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) = 0;
+    virtual bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) = 0;
 
     /// Round-trip time in seconds (moving average).
     [[nodiscard]] virtual float rtt() const noexcept = 0;

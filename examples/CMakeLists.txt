@@ -1,1 +1,5 @@
 add_subdirectory(echo)
+add_subdirectory(stress_test)
+add_subdirectory(chat)
+add_subdirectory(cubes)
+add_subdirectory(pong)

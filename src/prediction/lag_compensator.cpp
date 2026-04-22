@@ -36,7 +36,7 @@ bool LagCompensator::get_entity_state(std::uint16_t tick, NetworkId entity, std:
 
     for (const auto& ent : *snap) {
         if (ent.id == entity) {
-            out = ent.data;
+            out.assign(ent.data.begin(), ent.data.end());
             return true;
         }
     }

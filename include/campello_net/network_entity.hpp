@@ -51,40 +51,61 @@ public:
 
     // ── Bridge ───────────────────────────────────────────────────────────────
 
+    /// Set the bridge that creates/destroys local entities. Must be set before spawn().
     void set_bridge(INetworkEntityBridge* bridge);
+
+    /// Hard cap on total entities (0 = unlimited). Spawns beyond the limit return 0.
+    void set_max_entities(std::size_t max) noexcept;
 
     // ── Server API ───────────────────────────────────────────────────────────
 
     /// Spawn a new networked entity. Returns the assigned NetworkId.
     /// If `net` is non-null, broadcasts spawn to all connected clients.
+    /// Returns 0 if the entity limit has been reached.
     NetworkId spawn(PrefabId prefab, const std::vector<std::uint8_t>& init_data = {}, NetworkManager* net = nullptr);
 
     /// Destroy an entity by NetworkId.
     /// If `net` is non-null, broadcasts destroy to all connected clients.
     void destroy(NetworkId id, NetworkManager* net = nullptr);
 
-    /// Change ownership (0 = server-owned).
+    /// Change the owner of an entity (0 = server-owned).
     void set_owner(NetworkId id, ClientId owner);
 
     /// Send the full entity state to a specific client (late-joiner catch-up).
     void send_full_state_to_client(ClientId client, NetworkManager& net);
 
-    // ── Message handling (called by NetworkManager or user code) ─────────────
+    // ── Message handling (called by NetworkManager) ──────────────────────────
 
+    /// Parse and apply an EntitySpawn system message (client-side).
     void on_receive_spawn(ClientId sender, const std::uint8_t* data, std::size_t len);
+
+    /// Parse and apply an EntityDestroy system message (client-side).
     void on_receive_destroy(ClientId sender, const std::uint8_t* data, std::size_t len);
+
+    /// Parse and apply an EntitySetOwner system message (client-side).
     void on_receive_set_owner(ClientId sender, const std::uint8_t* data, std::size_t len);
+
+    /// Placeholder for batched full-state format. Currently a no-op.
     void on_receive_full_state(ClientId sender, const std::uint8_t* data, std::size_t len);
 
     // ── Queries ──────────────────────────────────────────────────────────────
 
+    /// True if the given NetworkId is currently tracked.
     [[nodiscard]] bool exists(NetworkId id) const noexcept;
+
+    /// Local ECS handle for the given NetworkId (0 if not found).
     [[nodiscard]] EntityHandle local_handle(NetworkId id) const noexcept;
+
+    /// Prefab identifier for the given NetworkId (0 if not found).
     [[nodiscard]] PrefabId prefab(NetworkId id) const noexcept;
+
+    /// Current owner of the given NetworkId (0 = server-owned).
     [[nodiscard]] ClientId owner(NetworkId id) const noexcept;
+
+    /// Total number of tracked entities.
     [[nodiscard]] std::size_t entity_count() const noexcept;
 
-    /// Iterate all entities.
+    /// Iterate all tracked entities. Callback receives (net_id, prefab_id, local_handle, owner_id).
     void for_each_entity(std::function<void(NetworkId, PrefabId, EntityHandle, ClientId)> cb) const;
 
 private:
@@ -98,6 +119,7 @@ private:
     std::unordered_map<NetworkId, Entity> entities_;
     INetworkEntityBridge* bridge_ = nullptr;
     NetworkId next_id_ = 1;
+    std::size_t max_entities_ = 0;
 
     void broadcast_spawn(const Entity& ent, const std::vector<std::uint8_t>& init_data, NetworkManager& net);
     void broadcast_destroy(NetworkId id, NetworkManager& net);

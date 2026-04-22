@@ -47,32 +47,79 @@ clang-format -i src/**/*.cpp include/**/*.hpp
 ```
 campello_net/
 ├── CMakeLists.txt
-├── include/campello/net/
-│   ├── network_manager.hpp      # Main entry point
+├── include/campello_net/
+│   ├── network_manager.hpp              # Main entry point
+│   ├── network_entity.hpp               # Network ID bridge / spawn-despawn
+│   ├── network_replication.hpp          # Replication manager, snapshots, delta compression
+│   ├── rpc_manager.hpp                  # RPC dispatcher
+│   ├── rpc_params.hpp                   # RPC invocation metadata (sender, timestamp, RTT)
+│   ├── network_time.hpp                 # NTP-style clock sync
+│   ├── network_clock.hpp                # Discrete tick counter with interpolation
+│   ├── net_stats.hpp                    # Per-connection bandwidth/packet stats
+│   ├── rate_limiter.hpp                 # Token-bucket rate limiter
+│   ├── connection_token.hpp             # HMAC-authenticated connection token
+│   ├── network_log.hpp                  # Compile-time log level system
+│   ├── version.hpp                      # Version macros
 │   ├── transport/
-│   │   ├── i_transport.hpp      # Transport abstraction
-│   │   └── udp_transport.hpp    # Default UDP implementation
+│   │   ├── i_transport.hpp              # Transport abstraction
+│   │   ├── udp_transport.hpp            # UDP implementation (Win32 + POSIX in one file)
+│   │   ├── loopback_transport.hpp       # In-memory transport for testing
+│   │   ├── encrypted_transport.hpp      # ChaCha20-Poly1305 transport wrapper
+│   │   ├── network_simulator.hpp        # Artificial latency/packet loss/duplication
+│   │   ├── address.hpp                  # IPv6 (v4-mapped) address wrapper
+│   │   └── packet.hpp                   # Packet header, reliability enums, MTU constants
 │   ├── serialization/
-│   │   └── bit_stream.hpp       # Bit-packing serializer
+│   │   ├── bit_stream.hpp               # Bit-packing serializer
+│   │   ├── serializable.hpp             # Serializable<T> concept + free functions
+│   │   └── quantization.hpp             # Float/vector/quaternion quantization
 │   ├── replication/
-│   │   ├── net_entity.hpp       # Network ID bridge
-│   │   ├── replicator.hpp       # Component replication loop
-│   │   └── interest_manager.hpp # Relevancy culling
-│   ├── rpc/
-│   │   └── rpc_dispatcher.hpp   # Type-safe RPC registry
-│   └── clock.hpp                # Network time / tick sync
+│   │   └── spatial_interest_manager.hpp # Grid-based spatial culling
+│   ├── prediction/
+│   │   ├── input_buffer.hpp             # Server-side input ring buffer
+│   │   └── lag_compensator.hpp          # Lag compensation / rewind tick history
+│   ├── discovery/
+│   │   └── lan_discovery.hpp            # UDP broadcast LAN service discovery
+│   ├── crypto/
+│   │   ├── chachapoly.hpp               # ChaCha20-Poly1305 (RFC 8439)
+│   │   └── hmac_sha256.hpp              # HMAC-SHA256 helper
+│   └── detail/
+│       └── config.hpp                   # Compile-time configuration macros
 ├── src/
 │   ├── transport/
-│   │   └── udp_transport.cpp    # Platform socket code
-│   └── network_manager.cpp      # Connection state machine
+│   │   ├── udp_transport.cpp            # Platform socket code
+│   │   ├── loopback_transport.cpp       # Loopback hub + transport
+│   │   ├── encrypted_transport.cpp      # Encryption wrapper implementation
+│   │   └── network_simulator.cpp        # Network simulator implementation
+│   ├── discovery/
+│   │   └── lan_discovery.cpp            # Beacon broadcast + listen
+│   ├── prediction/
+│   │   └── lag_compensator.cpp          # Rewind tick + snapshot lookup
+│   ├── crypto/
+│   │   └── chachapoly.cpp               # Standalone ChaCha20-Poly1305
+│   │   └── hmac_sha256.cpp              # HMAC-SHA256 implementation
+│   ├── network_manager.cpp              # Connection state machine
+│   ├── network_entity.cpp               # Entity spawn/destroy/owner handlers
+│   ├── network_replication.cpp          # Snapshot building, delta encoding
+│   ├── network_log.cpp                  # Log dispatch
+│   ├── network_time.cpp                 # Clock sync sample processing
+│   ├── rate_limiter.cpp                 # Token bucket logic
+│   ├── rpc_manager.cpp                  # RPC packet build/dispatch
+│   └── connection_token.cpp             # Token generate/validate
 ├── tests/
-│   └── test_*.cpp               # Unit tests (one file per subsystem)
+│   ├── test_*.cpp                       # Unit tests (one file per subsystem)
+│   ├── test_crypto.cpp                  # ChaCha20-Poly1305 + HMAC-SHA256
+│   ├── test_connection_token.cpp        # Token round-trip / expiry / tamper
+│   ├── test_encrypted_transport.cpp     # Encrypted transport replay protection
+│   ├── test_memory_audit.cpp            # Allocation tracking on hot paths
+│   ├── test_network_time.cpp            # Clock synchronization
+│   └── test_version.cpp                 # Version macro sanity
 ├── examples/
 │   ├── echo/
 │   ├── chat/
 │   ├── cubes/
-│   └── pong/
-└── third_party/                 # Vendored deps (keep minimal)
+│   ├── pong/
+│   └── stress_test/                     # In-process benchmark
+└── third_party/                         # Vendored deps (keep minimal)
 ```
 
 ---
@@ -84,7 +131,7 @@ campello_net/
   - Functions/variables: `snake_case` (`send_packet`, `client_id`)
   - Macros/constants: `SCREAMING_SNAKE_CASE` (`CAMPELLO_NET_VERSION`)
   - Private members: trailing underscore (`queue_`)
-- **Namespaces:** Everything lives in `campello::net`.
+- **Namespaces:** Everything lives in `systems::leal::campello_net` (sub-namespaces: `::serialization`, `::transport`, `::discovery`, `::crypto`).
 - **Headers:** Use `#pragma once`. Include order: project, standard library, third party.
 - **No exceptions on hot paths.** Use `std::optional`, `expected` (polyfill if needed), or out-parameters for transport errors.
 - **No RTTI or dynamic_cast.** Use type-safe IDs and visitor patterns.
@@ -98,18 +145,19 @@ Every new subsystem must include tests:
 - **Transport:** Loopback send/receive, fragmentation, reliable resend under loss.
 - **Serialization:** Roundtrip all primitive types, delta compression accuracy.
 - **Replication:** Spawn/despawn, delta application, late-joiner catch-up.
-- **RPCs:** Registration, dispatch, target filtering, invalid payload handling.
+- **RPCs:** Registration, dispatch, target filtering, invalid payload handling, authority checks, rate limiting.
+- **Crypto:** RFC test vectors, roundtrip, tamper detection, replay rejection.
 - **Integration:** Multi-client server session stability (≥5 minutes).
 
-Use the network simulation API (`net.set_packet_loss(0.05f)`) in tests to validate reliability.
+Use the network simulation API (`LoopbackTransport::set_packet_loss(0.05f)`) in tests to validate reliability.
 
 ---
 
 ## Integration with Campello Core
 
 - `campello_net` must **not** depend on `campello_core` headers in its public API.
-- Bridge types (e.g., `NetEntity`) use opaque handles (`uint64_t`) or callback interfaces.
-- The user wires ECS world changes into `campello_net` via `NetworkManager::registerSpawnCallback`, etc.
+- Bridge types (e.g., `NetworkEntity`) use opaque handles (`uint64_t`) or callback interfaces (`INetworkEntityBridge`, `IReplicationBridge`).
+- The user wires ECS world changes into `campello_net` via `NetworkEntityManager::set_bridge()`, `NetworkReplicationManager::set_bridge()`, etc.
 - This keeps the network library usable for non-ECS projects.
 
 ---
@@ -118,8 +166,8 @@ Use the network simulation API (`net.set_packet_loss(0.05f)`) in tests to valida
 
 | Platform | File / Define | Notes |
 |----------|--------------|-------|
-| Windows | `src/transport/win32_udp.cpp` | `WSAStartup`/`WSACleanup` managed in `NetworkManager` lifecycle. |
-| Unix | `src/transport/posix_udp.cpp` | `fcntl` for non-blocking; `SIGPIPE` ignored. |
+| Windows | `src/transport/udp_transport.cpp` | `WSAStartup`/`WSACleanup` managed in `NetworkManager` lifecycle. `#ifdef _WIN32` blocks in single file. |
+| Unix | `src/transport/udp_transport.cpp` | `fcntl` for non-blocking; `SIGPIPE` ignored. Same source file as Windows. |
 | iOS | Same as Unix | Watch for background socket suspension. |
 
 Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake.
@@ -142,18 +190,29 @@ Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake
 | 5 | Entity spawning, ownership, late-joiner catch-up | ✅ |
 | 6 | Component replication (state sync) | ✅ |
 | 7 | Delta compression (baseline snapshots) | ✅ |
-| 8 | Interest management / culling | ✅ |
+| 8 | Interest management / spatial culling | ✅ |
 | 9 | RPC system | ✅ |
+| 9b | RpcParams (sender, timestamp, RTT), authority checks, per-RPC rate limits | ✅ |
 | 10 | Client prediction plumbing (InputBuffer, snapshot callback) | ✅ |
-| 11 | Lag compensation (rewind tick + history lookup) | ✅ |
+| 11 | Lag compensation (rewind tick + O(1) history lookup) | ✅ |
 | 12 | LAN service discovery (UDP broadcast beacons) | ✅ |
 | 13 | Multi-transport support (`set_transport`, `add_transport`, cross-transport routing) | ✅ |
 | 13b | Rate limiting per client (messages/sec, bytes/sec, RPCs/sec) | ✅ |
+| 13c | Connection token authentication (HMAC-SHA256) | ✅ |
+| 13d | ChaCha20-Poly1305 encrypted transport | ✅ |
+| 14 | Stress Testing & Benchmarks (`examples/stress_test/`) | ✅ |
 | 15 | NetStats per-connection + compile-time logging system | ✅ |
 
 ## Future Roadmap
 
-### Phase 13 — Bluetooth / BLE Transport (Placeholder)
+### Phase 16 — Documentation, Cleanup & Release
+- Final README / AGENTS.md accuracy pass ✅
+- Remove dead code (`connection.hpp`) ✅
+- Audit public API documentation ✅
+- Memory audit, final cleanup ✅
+- Release v0.1.0 ✅
+
+### Bluetooth / BLE Transport (Placeholder)
 
 A separate transport layer for local multiplayer over Bluetooth Low Energy.
 
@@ -168,16 +227,6 @@ A separate transport layer for local multiplayer over Bluetooth Low Energy.
 - Custom packet fragmentation for BLE MTU limits
 - Service UUID discovery instead of IP addresses
 - Out-of-band pairing flow (not handled by the library)
-
-### Phase 14 — Stress Testing & Benchmarks
-- Spawn 1k/10k entities, measure replication CPU and memory
-- Bandwidth profiling under load
-- Packet loss simulation endurance test
-
-### Phase 15 — Documentation & Examples
-- API reference / usage guide
-- Example: simple replicated game (moving cubes with prediction)
-- Memory audit, final cleanup
 
 ## What NOT to Do
 

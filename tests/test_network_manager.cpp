@@ -933,7 +933,7 @@ TEST_CASE("RPC rate limiting drops excess RPCs") {
     server.set_rpc_manager(&rpc_mgr);
 
     int rpc_count = 0;
-    rpc_mgr.register_handler(1, [&rpc_count](ClientId, serialization::BitStream&) {
+    rpc_mgr.register_handler(1, [&rpc_count](const RpcParams&, serialization::BitStream&) {
         ++rpc_count;
     });
 

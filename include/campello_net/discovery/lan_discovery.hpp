@@ -8,6 +8,8 @@
 #include <functional>
 #include <string>
 
+namespace systems::leal::campello_net {
+
 // Forward-declare platform socket type so the header stays light.
 #ifdef _WIN32
 using socket_t = std::size_t;
@@ -15,20 +17,18 @@ using socket_t = std::size_t;
 using socket_t = int;
 #endif
 
-namespace systems::leal::campello_net {
-
 /// LAN service discovery via UDP broadcast.
 ///
 /// Operates on a separate IPv4 socket from the main game traffic so that
 /// discovery beacons do not interfere with replication or RPCs.
 ///
 /// Beacon wire format (UDP payload):
-///   [magic:    uint32_t  'CAMP']
-///   [version:  uint8_t   1]
-///   [game_port:uint16_t  network byte order]
-///   [max_players: uint32_t]
-///   [current_players: uint32_t]
-///   [name_len: uint8_t]
+///   [magic:    std::uint32_t  'CAMP']
+///   [version:  std::uint8_t   1]
+///   [game_port:std::uint16_t  network byte order]
+///   [max_players: std::uint32_t]
+///   [current_players: std::uint32_t]
+///   [name_len: std::uint8_t]
 ///   [name:     name_len bytes UTF-8]
 ///
 /// Usage (server):

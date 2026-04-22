@@ -20,6 +20,17 @@ static bool float_eq(float a, float b) {
     return a == b; // all test values are exact
 }
 
+// Helper that manages backing storage for EntitySnapshot spans in tests.
+struct TestSnapshotBuilder {
+    std::vector<std::vector<std::uint8_t>> storage;
+    std::vector<EntitySnapshot> entities;
+
+    void add(NetworkId id, std::initializer_list<std::uint8_t> data) {
+        storage.emplace_back(data);
+        entities.push_back({id, std::span<const std::uint8_t>(storage.back())});
+    }
+};
+
 // ── Mock entity bridge ──────────────────────────────────────────────────────
 
 struct MockEntityBridge : INetworkEntityBridge {
@@ -297,17 +308,21 @@ TEST_CASE("Replication bandwidth stays under limit for 1000 entities") {
 TEST_CASE("SnapshotHistory stores and retrieves snapshots") {
     SnapshotHistory hist;
 
-    std::vector<EntitySnapshot> snap1 = {{1, {0x01, 0x02}}, {2, {0x03}}};
-    std::vector<EntitySnapshot> snap2 = {{1, {0xAA}}, {3, {0xBB, 0xCC}}};
+    TestSnapshotBuilder sb1;
+    sb1.add(1, {0x01, 0x02});
+    sb1.add(2, {0x03});
+    TestSnapshotBuilder sb2;
+    sb2.add(1, {0xAA});
+    sb2.add(3, {0xBB, 0xCC});
 
-    hist.store(100, snap1);
-    hist.store(101, snap2);
+    hist.store(100, sb1.entities);
+    hist.store(101, sb2.entities);
 
     const auto* ret1 = hist.retrieve(100);
     REQUIRE(ret1 != nullptr);
     REQUIRE(ret1->size() == 2);
     REQUIRE((*ret1)[0].id == 1);
-    REQUIRE((*ret1)[0].data == std::vector<uint8_t>({0x01, 0x02}));
+    REQUIRE(std::equal((*ret1)[0].data.begin(), (*ret1)[0].data.end(), std::vector<uint8_t>({0x01, 0x02}).begin()));
 
     const auto* ret2 = hist.retrieve(101);
     REQUIRE(ret2 != nullptr);
@@ -317,18 +332,40 @@ TEST_CASE("SnapshotHistory stores and retrieves snapshots") {
 TEST_CASE("SnapshotHistory returns nullptr for unknown or evicted snapshots") {
     SnapshotHistory hist;
 
-    std::vector<EntitySnapshot> snap = {{1, {0x01}}};
-    hist.store(1, snap);
+    TestSnapshotBuilder sb;
+    sb.add(1, {0x01});
+    hist.store(1, sb.entities);
 
     REQUIRE(hist.retrieve(1) != nullptr);
     REQUIRE(hist.retrieve(999) == nullptr);
 
     // Fill history beyond MAX_SNAPSHOTS (128)
     for (std::uint16_t i = 2; i <= 130; ++i) {
-        hist.store(i, snap);
+        hist.store(i, sb.entities);
     }
     REQUIRE(hist.retrieve(1) == nullptr); // evicted
     REQUIRE(hist.retrieve(130) != nullptr);
+}
+
+TEST_CASE("SnapshotHistory handles uint16_t wrap-around") {
+    SnapshotHistory hist;
+
+    TestSnapshotBuilder sb;
+    sb.add(1, {0x01});
+
+    // Start near uint16_t max
+    std::uint16_t start = 65530;
+    for (std::uint16_t i = 0; i < 10; ++i) {
+        hist.store(static_cast<std::uint16_t>(start + i), sb.entities);
+    }
+
+    // Should retrieve correctly across the wrap (65535 -> 0)
+    REQUIRE(hist.retrieve(65530) != nullptr); // oldest
+    REQUIRE(hist.retrieve(65535) != nullptr);
+    REQUIRE(hist.retrieve(0) != nullptr);     // wrapped around
+    REQUIRE(hist.retrieve(3) != nullptr);     // newest
+    REQUIRE(hist.retrieve(5) == nullptr);     // never stored
+    REQUIRE(hist.retrieve(65529) == nullptr); // too old
 }
 
 TEST_CASE("NetworkVariable delta serializes changed flag") {
@@ -387,44 +424,46 @@ TEST_CASE("Delta compression sends smaller packets after ack") {
     }
 
     // Build full snapshot manually.
-    std::vector<EntitySnapshot> full_snap;
+    TestSnapshotBuilder full_sb;
     for (NetworkId i = 1; i <= 10; ++i) {
         BitStream stream;
         REQUIRE(bridge.serialize_entity(i, stream));
         auto span = stream.span();
-        full_snap.push_back({i, std::vector<uint8_t>(span.begin(), span.end())});
+        full_sb.storage.emplace_back(span.begin(), span.end());
+        full_sb.entities.push_back({i, std::span<const std::uint8_t>(full_sb.storage.back())});
     }
 
     // Store as snapshot 1
     SnapshotHistory hist;
-    hist.store(1, full_snap);
+    hist.store(1, full_sb.entities);
 
     // Client acks snapshot 1
     repl.on_snapshot_ack(1, 1);
 
     // Now only entity 5 changes.
     bridge.server_state[5] = 99.0f;
-    std::vector<EntitySnapshot> delta_snap;
+    TestSnapshotBuilder delta_sb;
     for (NetworkId i = 1; i <= 10; ++i) {
         BitStream stream;
         REQUIRE(bridge.serialize_entity(i, stream));
         auto span = stream.span();
-        delta_snap.push_back({i, std::vector<uint8_t>(span.begin(), span.end())});
+        delta_sb.storage.emplace_back(span.begin(), span.end());
+        delta_sb.entities.push_back({i, std::span<const std::uint8_t>(delta_sb.storage.back())});
     }
 
     // Build delta against baseline
     const auto* baseline = hist.retrieve(1);
     REQUIRE(baseline != nullptr);
 
-    std::unordered_map<NetworkId, const std::vector<uint8_t>*> baseline_map;
+    std::unordered_map<NetworkId, std::span<const std::uint8_t>> baseline_map;
     for (const auto& e : *baseline) {
-        baseline_map[e.id] = &e.data;
+        baseline_map[e.id] = e.data;
     }
 
     std::vector<EntitySnapshot> to_send;
-    for (const auto& cur : delta_snap) {
+    for (const auto& cur : delta_sb.entities) {
         auto it = baseline_map.find(cur.id);
-        if (it == baseline_map.end() || *it->second != cur.data) {
+        if (it == baseline_map.end() || !std::equal(it->second.begin(), it->second.end(), cur.data.begin(), cur.data.end())) {
             to_send.push_back(cur);
         }
     }

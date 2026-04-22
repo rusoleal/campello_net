@@ -33,3 +33,6 @@ coverage/
 # Package managers
 vcpkg_installed/
 conan/
+
+# Documentation
+docs/doxygen/

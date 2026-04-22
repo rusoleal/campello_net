@@ -1,5 +1,6 @@
 #pragma once
 
+#include "campello_net/connection_token.hpp"
 #include "campello_net/net_stats.hpp"
 #include "campello_net/network_time.hpp"
 #include "campello_net/transport/address.hpp"
@@ -43,6 +44,10 @@ public:
         float max_bytes_per_sec = 1024.0f * 1024.0f; ///< 0 = unlimited
         float max_rpcs_per_sec = 50.0f;              ///< 0 = unlimited
         float rate_limit_burst = 10.0f;              ///< Token bucket burst size
+
+        // ── Connection token authentication ──
+        std::array<std::uint8_t, 32> connection_token_secret{}; ///< Server-side HMAC key
+        bool require_connection_token = false;                    ///< Reject clients without valid token
     };
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -62,13 +67,21 @@ public:
     /// Must be called before start().
     void add_transport(std::unique_ptr<transport::ITransport> transport);
 
+    /// Start the network manager with the given configuration.
+    /// Must be called after set_transport() / add_transport() and before poll().
     bool start(const Config& config);
+
+    /// Stop all transports, disconnect all clients, and release resources.
     void stop();
 
     /// Must be called regularly (e.g. every frame or fixed tick).
+    /// Processes incoming packets, runs connection state machines, and dispatches callbacks.
     void poll();
 
+    /// Current mode (None, Server, Client, Host).
     [[nodiscard]] Mode mode() const noexcept;
+
+    /// True if the manager has been started and not yet stopped.
     [[nodiscard]] bool is_active() const noexcept;
 
     // ── Local clients (couch players) ────────────────────────────────────────
@@ -102,7 +115,8 @@ public:
         std::vector<std::uint8_t> payload;
     };
 
-    /// Pop the next user message. Returns false when queue is empty.
+    /// Pop the next user message from the inbound queue. Returns false when empty.
+    /// @param out_msg Filled with the sender client ID and payload bytes.
     bool pop_message(ReceivedMessage& out_msg);
 
     // ── Callbacks ────────────────────────────────────────────────────────────
@@ -110,8 +124,13 @@ public:
     using ClientCallback = std::function<void(ClientId)>;
     using DataCallback = std::function<void(ClientId, const std::uint8_t*, std::size_t)>;
 
+    /// Register a callback invoked when a new client connects (Server/Host only).
     void on_client_connected(ClientCallback cb);
+
+    /// Register a callback invoked when a client disconnects (Server/Host only).
     void on_client_disconnected(ClientCallback cb);
+
+    /// Register a callback invoked for every inbound user data packet.
     void on_data_received(DataCallback cb);
 
     // ── Connection approval (Server / Host only) ─────────────────────────────
@@ -121,19 +140,35 @@ public:
     using ApprovalCallback = std::function<bool(const transport::Address&, const std::vector<std::uint8_t>&)>;
     void set_connection_approval(ApprovalCallback cb);
 
-    /// Server / Host: disconnect a specific client.
+    /// Client: set the connection token to present during handshake.
+    void set_connection_token(const std::uint8_t token[ConnectionToken::SIZE]);
+
+    /// Server/Host: generate a connection token for a client.
+    /// Requires `config.connection_token_secret` to be non-zero.
+    bool generate_connection_token(std::uint8_t out_token[ConnectionToken::SIZE],
+                                   std::uint32_t expiry_seconds = 60) const;
+
+    /// Server / Host: gracefully disconnect a specific client.
     void disconnect_client(ClientId client);
 
-    /// Client: disconnect from server.
+    /// Client: disconnect from the server.
     void disconnect();
 
     // ── Queries ──────────────────────────────────────────────────────────────
 
+    /// Number of currently connected clients (Server/Host only).
     [[nodiscard]] std::size_t client_count() const noexcept;
+
+    /// True if the given client is still connected.
     [[nodiscard]] bool is_client_connected(ClientId client) const noexcept;
+
+    /// Transport address of the given client (Server/Host only).
     [[nodiscard]] transport::Address client_address(ClientId client) const;
 
+    /// Smoothed round-trip time to the given client in seconds (Server/Host only).
     [[nodiscard]] float client_rtt(ClientId client) const noexcept;
+
+    /// Estimated packet loss percentage [0, 1] for the given client (Server/Host only).
     [[nodiscard]] float client_packet_loss(ClientId client) const noexcept;
 
     /// Per-client network statistics (Server / Host only).
@@ -142,18 +177,22 @@ public:
     /// Local clock synchronized to server time (Client mode only).
     [[nodiscard]] double network_time() const noexcept;
 
+    /// Client/Host: the local ClientId assigned by the server during handshake. 0 before connection.
     [[nodiscard]] ClientId local_client_id() const noexcept;
 
     // ── Entity integration (Phase 5) ─────────────────────────────────────────
 
+    /// Wire the entity manager for spawn/destroy/owner system message handling.
     void set_entity_manager(class NetworkEntityManager* mgr) noexcept;
 
     // ── Replication integration (Phase 6) ────────────────────────────────────
 
+    /// Wire the replication manager for snapshot building and delta compression.
     void set_replication_manager(class NetworkReplicationManager* mgr) noexcept;
 
     // ── RPC integration (Phase 9) ────────────────────────────────────────────
 
+    /// Wire the RPC manager for incoming RPC system message dispatch.
     void set_rpc_manager(class RpcManager* mgr) noexcept;
 
 private:

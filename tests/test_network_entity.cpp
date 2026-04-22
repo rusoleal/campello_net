@@ -300,3 +300,71 @@ TEST_CASE("Late-joiner receives full state") {
     client1.disconnect();
     server_net.stop();
 }
+
+TEST_CASE("NetworkEntityManager respects max_entities limit") {
+    MockBridge bridge;
+    NetworkEntityManager mgr;
+    mgr.set_bridge(&bridge);
+    mgr.set_max_entities(3);
+
+    NetworkId id1 = mgr.spawn(1, {});
+    NetworkId id2 = mgr.spawn(1, {});
+    NetworkId id3 = mgr.spawn(1, {});
+
+    REQUIRE(id1 != 0);
+    REQUIRE(id2 != 0);
+    REQUIRE(id3 != 0);
+    REQUIRE(mgr.entity_count() == 3);
+
+    // Fourth spawn should fail
+    NetworkId id4 = mgr.spawn(1, {});
+    REQUIRE(id4 == 0);
+    REQUIRE(mgr.entity_count() == 3);
+}
+
+TEST_CASE("NetworkEntityManager on_receive_spawn drops when over limit") {
+    MockBridge bridge;
+    NetworkEntityManager mgr;
+    mgr.set_bridge(&bridge);
+    mgr.set_max_entities(2);
+
+    // Directly inject spawn messages (big-endian wire format)
+    auto write_u64_be = [](uint8_t* dst, uint64_t v) {
+        dst[0] = static_cast<uint8_t>(v >> 56);
+        dst[1] = static_cast<uint8_t>(v >> 48);
+        dst[2] = static_cast<uint8_t>(v >> 40);
+        dst[3] = static_cast<uint8_t>(v >> 32);
+        dst[4] = static_cast<uint8_t>(v >> 24);
+        dst[5] = static_cast<uint8_t>(v >> 16);
+        dst[6] = static_cast<uint8_t>(v >> 8);
+        dst[7] = static_cast<uint8_t>(v);
+    };
+    auto write_u32_be = [](uint8_t* dst, uint32_t v) {
+        dst[0] = static_cast<uint8_t>(v >> 24);
+        dst[1] = static_cast<uint8_t>(v >> 16);
+        dst[2] = static_cast<uint8_t>(v >> 8);
+        dst[3] = static_cast<uint8_t>(v);
+    };
+    auto write_u16_be = [](uint8_t* dst, uint16_t v) {
+        dst[0] = static_cast<uint8_t>(v >> 8);
+        dst[1] = static_cast<uint8_t>(v);
+    };
+
+    std::vector<uint8_t> spawn_msg(14);
+    write_u64_be(spawn_msg.data(), 100); // net_id
+    write_u32_be(spawn_msg.data() + 8, 1); // prefab
+    write_u16_be(spawn_msg.data() + 12, 0); // init_len
+
+    mgr.on_receive_spawn(0, spawn_msg.data(), spawn_msg.size());
+    REQUIRE(mgr.entity_count() == 1);
+
+    write_u64_be(spawn_msg.data(), 200);
+    mgr.on_receive_spawn(0, spawn_msg.data(), spawn_msg.size());
+    REQUIRE(mgr.entity_count() == 2);
+
+    // Third spawn should be dropped
+    write_u64_be(spawn_msg.data(), 300);
+    mgr.on_receive_spawn(0, spawn_msg.data(), spawn_msg.size());
+    REQUIRE(mgr.entity_count() == 2);
+    REQUIRE(!mgr.exists(300));
+}

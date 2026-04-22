@@ -21,9 +21,14 @@ add_library(campello_net
     src/transport/udp_transport.cpp
     src/transport/network_simulator.cpp
     src/transport/loopback_transport.cpp
+    src/transport/encrypted_transport.cpp
+    src/crypto/chachapoly.cpp
+    src/crypto/hmac_sha256.cpp
+    src/connection_token.cpp
     src/rate_limiter.cpp
     src/network_log.cpp
     src/network_time.cpp
+    src/network_clock.cpp
     src/network_manager.cpp
     src/network_entity.cpp
     src/network_replication.cpp
@@ -31,6 +36,7 @@ add_library(campello_net
     src/prediction/input_buffer.cpp
     src/prediction/lag_compensator.cpp
     src/discovery/lan_discovery.cpp
+    src/replication/spatial_interest_manager.cpp
 )
 add_library(campello::net ALIAS campello_net)
 
@@ -104,6 +110,18 @@ endif()
 # ── Examples ─────────────────────────────────────────────────────────────────
 if(CAMPELLO_NET_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# ── Documentation ────────────────────────────────────────────────────────────
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    add_custom_target(
+        campello_net_docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
 endif()
 
 # ── Install ──────────────────────────────────────────────────────────────────

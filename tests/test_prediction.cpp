@@ -11,6 +11,17 @@
 #include <thread>
 
 using namespace systems::leal::campello_net;
+
+// Helper that manages backing storage for EntitySnapshot spans in tests.
+struct TestSnapshotBuilder {
+    std::vector<std::vector<std::uint8_t>> storage;
+    std::vector<EntitySnapshot> entities;
+
+    void add(NetworkId id, std::initializer_list<std::uint8_t> data) {
+        storage.emplace_back(data);
+        entities.push_back({id, std::span<const std::uint8_t>(storage.back())});
+    }
+};
 using namespace systems::leal::campello_net::transport;
 using namespace systems::leal::campello_net::serialization;
 
@@ -201,7 +212,7 @@ TEST_CASE("Client sends ticked inputs to server via RPC") {
     InputBuffer input_buffer;
 
     // Server registers handler for input RPC (id 50)
-    server_rpc.register_handler(50, [&input_buffer](ClientId sender, BitStream& args) {
+    server_rpc.register_handler(50, [&input_buffer](const RpcParams& params, BitStream& args) {
         std::uint16_t tick = 0;
         float move_x = 0.0f;
         float move_y = 0.0f;
@@ -214,7 +225,7 @@ TEST_CASE("Client sends ticked inputs to server via RPC") {
         serialize(input_stream, move_x);
         serialize(input_stream, move_y);
         auto span = input_stream.span();
-        input_buffer.store(sender, tick, std::span<const uint8_t>(span.data(), span.size()));
+        input_buffer.store(params.sender, tick, std::span<const uint8_t>(span.data(), span.size()));
     });
 
     // Client sends 3 inputs
@@ -274,18 +285,16 @@ TEST_CASE("LagCompensator retrieves entity state from snapshot history") {
     SnapshotHistory hist;
 
     // Store snapshot 10 with two entities
-    std::vector<EntitySnapshot> snap10 = {
-        {1, {0x01, 0x02}},
-        {2, {0xAA, 0xBB, 0xCC}},
-    };
-    hist.store(10, snap10);
+    TestSnapshotBuilder sb10;
+    sb10.add(1, {0x01, 0x02});
+    sb10.add(2, {0xAA, 0xBB, 0xCC});
+    hist.store(10, sb10.entities);
 
     // Store snapshot 11 with one entity changed
-    std::vector<EntitySnapshot> snap11 = {
-        {1, {0x03}},
-        {2, {0xAA, 0xBB, 0xCC}},
-    };
-    hist.store(11, snap11);
+    TestSnapshotBuilder sb11;
+    sb11.add(1, {0x03});
+    sb11.add(2, {0xAA, 0xBB, 0xCC});
+    hist.store(11, sb11.entities);
 
     LagCompensator comp;
     comp.set_snapshot_history(&hist);

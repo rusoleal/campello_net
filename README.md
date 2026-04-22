@@ -1,5 +1,7 @@
 # campello_net
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/rusoleal/campello_net/releases)
+
 Advanced multiplayer networking library for the [Campello](https://github.com/rusoleal/campello) game engine ecosystem.
 
 `campello_net` is a C++20, multiplatform networking package designed to bring modern multiplayer capabilities to Campello-powered games. It provides everything from low-level reliable UDP to high-level ECS component replication, client-side prediction, and snapshot interpolation — inspired by the best of Unreal Engine's replication system, Unity's Netcode for GameObjects, and Godot's high-level multiplayer API.
@@ -9,34 +11,34 @@ Advanced multiplayer networking library for the [Campello](https://github.com/ru
 ## ✨ Features
 
 - **🚀 C++20 Modern API**
-  Concepts, coroutines-ready architecture, and zero-overhead abstractions.
+  Concepts, `std::span`, designated initializers, and zero-overhead abstractions. Zero dynamic allocation on hot paths.
 
 - **🌍 Multiplatform**
-  Windows, Linux, macOS, iOS, and Android.
+  Windows (WinSock2), Linux/macOS/iOS/Android (BSD sockets). Web transport planned.
 
 - **🔌 Transport Abstraction**
-  Pluggable transport layer with built-in reliable UDP and loopback implementations.
+  Pluggable transport layer with built-in UDP, loopback (for testing), encrypted (ChaCha20-Poly1305), and network-simulator transports.
 
 - **🧩 ECS-Native Replication**
-  Component-level state synchronization designed for `campello_core`'s ECS architecture.
+  Component-level state synchronization via `NetworkEntityManager` + `NetworkReplicationManager`. Works standalone or with `campello_core`.
 
 - **⚡ High Performance**
-  Bit-packing serialization, delta compression, interest management, and spatial culling.
+  Bit-packing serialization, delta compression, spatial interest management, and snapshot interpolation.
 
 - **🎯 Type-Safe RPCs**
-  Compile-time checked Remote Procedure Calls with multiple targeting modes.
+  Remote Procedure Calls with `RpcParams` context (sender, timestamp, RTT), authority checks, and per-RPC rate limiting.
 
 - **🎮 Client-Side Prediction**
-  Responsive input with server reconciliation for action-oriented games.
+  Input buffering on the server, lag compensation with rewind-tick history lookup.
 
 - **📊 Snapshot Interpolation**
   Smooth remote entity playback with jitter buffering and extrapolation.
 
 - **🔒 Security Built-In**
-  Connection authentication, rate limiting, input validation, and optional encryption.
+  HMAC-SHA256 connection tokens, optional packet encryption, per-client rate limiting, and replay-protection.
 
-- **🛠️ Debugging & Profiling**
-  Network stats, packet capture, and profiler hooks for the Campello editor.
+- **🛠️ Debugging**
+  Network stats per connection, compile-time log levels, and LAN service discovery.
 
 ---
 
@@ -46,28 +48,30 @@ Advanced multiplayer networking library for the [Campello](https://github.com/ru
 ┌─────────────────────────────────────────────────────────────┐
 │                    Application / Game                       │
 ├─────────────────────────────────────────────────────────────┤
-│  NetworkManager  │  RPC Dispatcher  │  Interest Manager    │
+│  NetworkManager  │  RpcManager  │  SpatialInterestManager  │
 ├─────────────────────────────────────────────────────────────┤
-│  Entity Replication  │  Snapshot System  │  Network Clock    │
+│  NetworkEntityManager  │  NetworkReplicationManager         │
 ├─────────────────────────────────────────────────────────────┤
-│  Connection Manager  │  Message Channels  │  BitStream       │
+│  SnapshotHistory  │  ClientSnapshotBuffer  │  LagCompensator │
 ├─────────────────────────────────────────────────────────────┤
-│              Transport Layer (UDP / WebSocket)              │
+│  BitStream  │  InputBuffer  │  NetworkTime / NetworkClock   │
+├─────────────────────────────────────────────────────────────┤
+│  EncryptedTransport  │  UdpTransport  │  LoopbackTransport  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Design Philosophy
 
 1. **Server Authority First** — The server is the single source of truth. Clients predict; servers correct.
-2. **ECS-Centric** — Replication happens at the component level, fitting Campello's data-oriented design.
+2. **ECS-Centric** — Replication happens at the component level via opaque entity handles. No hard dependency on `campello_core`.
 3. **Opt-In Complexity** — Use raw messages for simple games; enable full prediction and snapshots for competitive titles.
-4. **Transport Agnostic** — Swap UDP for WebSocket or a console SDK without changing game code.
+4. **Transport Agnostic** — Swap UDP for loopback or an encrypted wrapper without changing game code.
 
 ---
 
 ## 📦 Installation
 
-> **Note:** `campello_net` is a header-first / static library. It depends on `campello_core` for ECS integration, but its transport and serialization layers are usable standalone.
+> **Note:** `campello_net` is a header-first / static library. Its public API does not depend on `campello_core`, but it provides callback-based bridges for ECS integration.
 
 ### CMake
 
@@ -76,18 +80,18 @@ include(FetchContent)
 FetchContent_Declare(
   campello_net
   GIT_REPOSITORY https://github.com/rusoleal/campello_net.git
-  GIT_TAG        v0.1.0
+  GIT_TAG        v0.1.0   # Pin to a release; use 'main' for latest
 )
 FetchContent_MakeAvailable(campello_net)
 
-target_link_libraries(your_game PRIVATE campello::net)
+target_link_libraries(your_game PRIVATE campello_net)
 ```
 
 ### Requirements
 
 - C++20 compatible compiler (GCC 12+, Clang 15+, MSVC 2022+)
 - CMake 3.25+
-- (Optional) `campello_core` for ECS replication features
+- (Optional) `campello_core` for deep ECS replication integration
 
 ---
 
@@ -96,25 +100,34 @@ target_link_libraries(your_game PRIVATE campello::net)
 ### 1. Start a Server
 
 ```cpp
-#include <campello/net/network_manager.hpp>
+#include <campello_net/network_manager.hpp>
+#include <campello_net/rpc_manager.hpp>
+#include <iostream>
 
-using namespace campello::net;
+using namespace systems::leal::campello_net;
 
 int main() {
     NetworkManager net;
-    net.startServer(7777, /* maxClients */ 32);
+    net.start(NetworkManager::Config{
+        .mode = NetworkManager::Mode::Server,
+        .bind_address = transport::Address("::", 7777),
+        .max_clients = 32,
+    });
 
-    net.onClientConnected = [](ClientId id) {
-        std::println("Client {} joined", id);
-    };
+    net.on_client_connected([](ClientId id) {
+        std::cout << "Client " << id << " joined\n";
+    });
 
-    net.onClientDisconnected = [](ClientId id) {
-        std::println("Client {} left", id);
-    };
+    net.on_client_disconnected([](ClientId id) {
+        std::cout << "Client " << id << " left\n";
+    });
 
-    while (net.isListening()) {
+    RpcManager rpc;
+    rpc.set_network_manager(&net);
+    net.set_rpc_manager(&rpc);
+
+    while (net.is_active()) {
         net.poll();
-        net.tick(); // fixed network tick
     }
     return 0;
 }
@@ -123,58 +136,66 @@ int main() {
 ### 2. Connect a Client
 
 ```cpp
-#include <campello/net/network_manager.hpp>
+#include <campello_net/network_manager.hpp>
+#include <campello_net/rpc_manager.hpp>
+#include <iostream>
+
+using namespace systems::leal::campello_net;
 
 int main() {
     NetworkManager net;
-    net.startClient("127.0.0.1", 7777);
+    net.start(NetworkManager::Config{
+        .mode = NetworkManager::Mode::Client,
+        .server_address = transport::Address("127.0.0.1", 7777),
+    });
 
-    net.onConnected = [] {
-        std::println("Connected to server!");
-    };
+    RpcManager rpc;
+    rpc.set_network_manager(&net);
+    net.set_rpc_manager(&rpc);
 
-    while (net.isConnected()) {
+    while (net.is_active()) {
         net.poll();
-        net.tick();
+
+        // Pop user messages
+        NetworkManager::ReceivedMessage msg;
+        while (net.pop_message(msg)) {
+            // Process msg.payload from msg.client
+        }
     }
     return 0;
 }
 ```
 
-### 3. Replicate an ECS Component
+### 3. Register an RPC Handler
 
 ```cpp
-#include <campello/net/replication.hpp>
+// Server-side: handle client input
+rpc.register_handler(1, [](const RpcParams& params, BitStream& args) {
+    float dx = 0.0f, dy = 0.0f;
+    deserialize(args, dx);
+    deserialize(args, dy);
+    apply_input(params.sender, dx, dy);  // params.sender == ClientId
+}, RpcAuthority::Anyone);  // or RpcAuthority::ServerOnly
 
-// Mark a component as replicated
-struct Transform : ReplicatedComponent<Transform> {
-    Vec3 position;
-    Quat rotation;
-
-    void serialize(BitStream& stream) {
-        stream.writeQuantized(position, /* min */ -1000.0f, /* max */ 1000.0f, /* bits */ 20);
-        stream.writeSmallestThree(rotation, /* bits */ 16);
-    }
-};
-
-// On the server: spawn and replicate
-Entity player = world.createEntity();
-world.add<Transform>(player, Vec3{0, 0, 0});
-net.spawn(player); // automatically synced to relevant clients
+// Client-side: invoke the RPC
+rpc.invoke_server(1, 1.0f, 0.0f);
 ```
 
-### 4. Call an RPC
+### 4. Entity Spawning & Replication
 
 ```cpp
-// Define a server RPC
-campello_net_rpc(FireWeapon, Server, (int weaponId, Vec3 direction)) {
-    // Runs on server when any client calls it
-    if (!validateOwner(sender)) return;
-    applyDamage(weaponId, direction);
-}
+// Set up the bridge between net and your game world
+NetworkEntityManager entity_mgr;
+entity_mgr.set_bridge(&my_game_bridge);
+net.set_entity_manager(&entity_mgr);
 
-// From client
-net.rpc().call<FireWeapon>(weaponId, aimDirection);
+NetworkReplicationManager repl;
+repl.set_bridge(&my_game_bridge);
+repl.set_entity_manager(&entity_mgr);
+net.set_replication_manager(&repl);
+
+// Server spawns an entity — automatically synced to clients
+NetworkId net_id = entity_mgr.spawn(/*prefab*/ 1, /*init_data*/ {});
 ```
 
 ---
@@ -184,10 +205,9 @@ net.rpc().call<FireWeapon>(weaponId, aimDirection);
 | Example | Description |
 |---------|-------------|
 | `examples/echo` | Minimal client/server message echo |
-| `examples/chat` | Text chat with reliable messaging |
-| `examples/cubes` | 1000 replicated moving cubes |
-| `examples/pong` | 2-player game with client prediction |
-| `examples/shooter` | Authoritative server with lag compensation |
+| `examples/chat` | Text chat with reliable RPC messaging |
+| `examples/cubes` | Replicated moving cubes with spatial culling |
+| `examples/pong` | 2-player game with replication and interpolation |
 
 Build examples:
 
@@ -201,23 +221,22 @@ cmake --build build
 
 ## 📖 Documentation
 
-- [API Reference](https://rusoleal.github.io/campello_net) (Doxygen)
-- [Architecture Decisions](docs/adr/)
-- [Multiplayer Concepts](docs/concepts.md) — prediction, reconciliation, snapshots
-- [Integration Guide](docs/integration.md) — wiring into `campello_core`
+- Browse the headers in `include/campello_net/` — every public class and method is documented inline.
+- See [`AGENTS.md`](AGENTS.md) for agent-focused build instructions, coding style, and architecture notes.
+- See [`todo.md`](todo.md) for the implementation roadmap.
 
 ---
 
 ## 🗺️ Roadmap
 
-See [`todo.md`](todo.md) for the full implementation roadmap.
+See [`CHANGELOG.md`](CHANGELOG.md) for release notes and [`todo.md`](todo.md) for the implementation roadmap.
 
 High-level milestones:
 
-- **M0 Alpha Core** — Connections, messaging, server/client/host
-- **M1 Beta Sync** — ECS replication, RPCs, interest management
-- **M2 Beta Gameplay** — Prediction, interpolation, clock sync, security
-- **M3 Release** — Web transport, tooling, production hardening
+- **M0 Alpha Core** ✅ — Connections, messaging, server/client/host
+- **M1 Beta Sync** ✅ — ECS replication, RPCs, interest management, delta compression
+- **M2 Beta Gameplay** ✅ — Prediction, interpolation, clock sync, security (tokens + encryption)
+- **M3 Release** ✅ — Stress testing, benchmarks, final documentation, v0.1.0 tagged
 
 ---
 
@@ -243,6 +262,6 @@ MIT License — see [LICENSE](LICENSE).
 
 ## 🙋 Contributing
 
-Contributions welcome! Please read the [Campello contribution guidelines](https://github.com/rusoleal/campello/blob/main/CONTRIBUTING.md) and ensure your PRs include tests.
+Contributions welcome! Please ensure your PRs include tests and pass the CI build.
 
 For questions, open a [GitHub Discussion](https://github.com/rusoleal/campello/discussions) or file an issue.

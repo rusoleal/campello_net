@@ -60,10 +60,18 @@ void NetworkEntityManager::set_bridge(INetworkEntityBridge* bridge) {
     bridge_ = bridge;
 }
 
+void NetworkEntityManager::set_max_entities(std::size_t max) noexcept {
+    max_entities_ = max;
+}
+
 // ── Server API ──────────────────────────────────────────────────────────────
 
 NetworkId NetworkEntityManager::spawn(PrefabId prefab, const std::vector<std::uint8_t>& init_data,
                                       NetworkManager* net) {
+    if (max_entities_ > 0 && entities_.size() >= max_entities_) {
+        return 0;
+    }
+
     NetworkId id = next_id_++;
 
     Entity ent;
@@ -122,7 +130,8 @@ void NetworkEntityManager::broadcast_spawn(const Entity& ent, const std::vector<
         std::memcpy(msg.data() + 17, init_data.data(), init_data.size());
     }
 
-    // TODO: in Phase 7 (interest management), only send to relevant clients
+    // Interest management (spatial culling) is handled by NetworkReplicationManager
+    // during snapshot building. Entity spawn messages go to all connected clients.
     net.broadcast(msg.data(), msg.size(), transport::PacketReliability::ReliableOrdered);
 }
 
@@ -174,6 +183,10 @@ void NetworkEntityManager::on_receive_spawn(ClientId /*sender*/, const std::uint
     // If entity already exists, ignore (duplicate spawn)
     if (entities_.find(net_id) != entities_.end())
         return;
+
+    if (max_entities_ > 0 && entities_.size() >= max_entities_) {
+        return;
+    }
 
     Entity ent;
     ent.net_id = net_id;
