@@ -8,30 +8,50 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <malloc/malloc.h>
 #include <thread>
+
+#ifdef __APPLE__
+#include <malloc/malloc.h>
+#else
+#include <malloc.h>
+#endif
 
 using namespace systems::leal::campello_net;
 using namespace systems::leal::campello_net::serialization;
 using namespace systems::leal::campello_net::transport;
 
-// ── macOS allocation counter ─────────────────────────────────────────────────
+// ── Cross-platform allocation counter ────────────────────────────────────────
 
 struct MallocCounter {
+#ifdef __APPLE__
     malloc_statistics_t before{};
+#else
+    struct mallinfo2 before{};
+#endif
 
     MallocCounter() { reset(); }
 
     void reset() {
+#ifdef __APPLE__
         malloc_zone_statistics(malloc_default_zone(), &before);
+#else
+        before = mallinfo2();
+#endif
     }
 
-    [[nodiscard]] std::size_t blocks_allocated() const {
+    [[nodiscard]] std::size_t bytes_allocated() const {
+#ifdef __APPLE__
         malloc_statistics_t after{};
         malloc_zone_statistics(malloc_default_zone(), &after);
-        return static_cast<std::size_t>(after.blocks_in_use > before.blocks_in_use
-                                            ? after.blocks_in_use - before.blocks_in_use
+        return static_cast<std::size_t>(after.size_in_use > before.size_in_use
+                                            ? after.size_in_use - before.size_in_use
                                             : 0);
+#else
+        struct mallinfo2 after = mallinfo2();
+        return static_cast<std::size_t>(after.uordblks > before.uordblks
+                                            ? after.uordblks - before.uordblks
+                                            : 0);
+#endif
     }
 };
 
@@ -102,7 +122,7 @@ TEST_CASE("NetworkManager::poll() does not allocate on steady state") {
         server_net.poll();
         client_net.poll();
     }
-    std::size_t allocs = counter.blocks_allocated();
+    std::size_t allocs = counter.bytes_allocated();
     INFO("Allocations during 60 poll() iterations: " << allocs);
     REQUIRE(allocs == 0);
 }
@@ -151,7 +171,7 @@ TEST_CASE("server_tick() does not allocate when no state changes") {
     for (int i = 0; i < 30; ++i) {
         server_repl.server_tick(1.0f / 60.0f, server_net);
     }
-    std::size_t allocs = counter.blocks_allocated();
+    std::size_t allocs = counter.bytes_allocated();
     INFO("Allocations during 30 idle server_tick() calls: " << allocs);
     REQUIRE(allocs == 0);
 }
@@ -236,7 +256,7 @@ TEST_CASE("server_tick() does not allocate with dirty entities") {
         }
         server_repl.server_tick(1.0f / 60.0f, server_net);
     }
-    std::size_t allocs = counter.blocks_allocated();
+    std::size_t allocs = counter.bytes_allocated();
     INFO("Allocations during 30 dirty server_tick() calls with 50 entities: " << allocs);
     REQUIRE(allocs == 0);
 }
@@ -288,7 +308,7 @@ TEST_CASE("BitStream write/read primitives do not allocate after warm-up") {
         stream.read_varint(v);
         stream.reset();
     }
-    std::size_t allocs = counter.blocks_allocated();
+    std::size_t allocs = counter.bytes_allocated();
     INFO("Allocations during 1000 BitStream round-trips: " << allocs);
     REQUIRE(allocs == 0);
 }

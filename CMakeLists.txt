@@ -89,7 +89,7 @@ else()
             -Wimplicit-fallthrough
     )
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        target_compile_options(campello_net INTERFACE -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op)
+        target_compile_options(campello_net INTERFACE -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wno-missing-field-initializers)
     endif()
 endif()
 

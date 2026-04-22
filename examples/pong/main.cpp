@@ -280,7 +280,7 @@ private:
 
         std::cout << "Player " << player_num << " joined (client " << id << ")\n";
 
-        NetworkId paddle_id = entities_.spawn(static_cast<PrefabId>(PREFAB_PADDLE_BASE + player_num), {}, &net_);
+        NetworkId paddle_id = entities_.spawn(PREFAB_PADDLE_BASE + static_cast<PrefabId>(player_num), {}, &net_);
         (void)paddle_id; // used for tracking
         paddle_net_ids_[player_num - 1] = paddle_id;
         rpc_.invoke_client(id, RPC_ASSIGN_PADDLE, paddle_id);

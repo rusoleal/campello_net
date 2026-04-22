@@ -128,7 +128,7 @@ TEST_CASE("Prediction mode routes snapshots to callback instead of bridge") {
     packet[2] = 0;
     packet[3] = 2; // num_entities = 2
 
-    for (NetworkId id : {10, 20}) {
+    for (NetworkId id : {NetworkId{10}, NetworkId{20}}) {
         BitStream es;
         es.write_float(1.0f);
         auto span = es.span();
