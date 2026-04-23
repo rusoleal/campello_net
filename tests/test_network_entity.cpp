@@ -351,8 +351,8 @@ TEST_CASE("NetworkEntityManager on_receive_spawn drops when over limit") {
     };
 
     std::vector<uint8_t> spawn_msg(14);
-    write_u64_be(spawn_msg.data(), 100); // net_id
-    write_u32_be(spawn_msg.data() + 8, 1); // prefab
+    write_u64_be(spawn_msg.data(), 100);    // net_id
+    write_u32_be(spawn_msg.data() + 8, 1);  // prefab
     write_u16_be(spawn_msg.data() + 12, 0); // init_len
 
     mgr.on_receive_spawn(0, spawn_msg.data(), spawn_msg.size());

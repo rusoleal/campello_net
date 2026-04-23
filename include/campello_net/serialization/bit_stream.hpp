@@ -298,7 +298,8 @@ private:
     [[nodiscard]] static std::uint64_t to_net(std::uint64_t v) noexcept {
         if constexpr (std::endian::native == std::endian::big)
             return v;
-        return (static_cast<std::uint64_t>(to_net(static_cast<std::uint32_t>(v))) << 32) | to_net(static_cast<std::uint32_t>(v >> 32));
+        return (static_cast<std::uint64_t>(to_net(static_cast<std::uint32_t>(v))) << 32) |
+               to_net(static_cast<std::uint32_t>(v >> 32));
     }
 };
 
@@ -388,7 +389,8 @@ inline void BitStream::write_half(float value) {
     if (exponent == 0) {
         half = static_cast<std::uint16_t>(static_cast<std::uint32_t>(sign) << 15);
     } else if (exponent == 0xFF) {
-        half = static_cast<std::uint16_t>((static_cast<std::uint32_t>(sign) << 15) | (0x1Fu << 10) | (mantissa ? 0x200u : 0));
+        half = static_cast<std::uint16_t>((static_cast<std::uint32_t>(sign) << 15) | (0x1Fu << 10) |
+                                          (mantissa ? 0x200u : 0));
     } else {
         std::int32_t new_exp = static_cast<std::int32_t>(exponent) - 127 + 15;
         if (new_exp >= 31) {
@@ -396,8 +398,9 @@ inline void BitStream::write_half(float value) {
         } else if (new_exp <= 0) {
             half = static_cast<std::uint16_t>(static_cast<std::uint32_t>(sign) << 15);
         } else {
-            half = static_cast<std::uint16_t>((static_cast<std::uint32_t>(sign) << 15) | (static_cast<std::uint32_t>(new_exp) << 10) |
-                                         static_cast<std::uint16_t>(mantissa >> 13));
+            half = static_cast<std::uint16_t>((static_cast<std::uint32_t>(sign) << 15) |
+                                              (static_cast<std::uint32_t>(new_exp) << 10) |
+                                              static_cast<std::uint16_t>(mantissa >> 13));
         }
     }
     write_bits(half, 16);
@@ -531,16 +534,14 @@ inline bool BitStream::read_string(std::string& str) {
 
 // ── Template definitions (must follow class body) ───────────────────────────
 
-template <typename T>
-inline void BitStream::write_array(std::span<const T> values) {
+template <typename T> inline void BitStream::write_array(std::span<const T> values) {
     write_varint(static_cast<std::uint64_t>(values.size()));
     for (const auto& v : values) {
         serialize(*this, v);
     }
 }
 
-template <typename T>
-inline bool BitStream::read_array(std::vector<T>& values) {
+template <typename T> inline bool BitStream::read_array(std::vector<T>& values) {
     std::uint64_t len = 0;
     if (!read_varint(len))
         return false;

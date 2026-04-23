@@ -47,7 +47,8 @@ public:
     virtual void poll() = 0;
 
     /// Pop one received user payload. Returns false when queue is empty.
-    virtual bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) = 0;
+    virtual bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                             Address& out_sender) = 0;
 
     /// Round-trip time in seconds (moving average).
     [[nodiscard]] virtual float rtt() const noexcept = 0;

@@ -45,7 +45,8 @@ public:
                  PacketReliability reliability) override;
     void poll() override;
 
-    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) override;
+    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                     Address& out_sender) override;
 
     [[nodiscard]] float rtt() const noexcept override;
     [[nodiscard]] float packet_loss() const noexcept override;

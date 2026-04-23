@@ -49,7 +49,8 @@ public:
     void poll() override;
 
     /// @brief Pop a received packet from the internal queue.
-    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) override;
+    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                     Address& out_sender) override;
 
     /// @return Smoothed RTT of the default connection.
     [[nodiscard]] float rtt() const noexcept override;

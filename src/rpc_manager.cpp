@@ -88,7 +88,7 @@ void RpcManager::invoke_not_owner(std::uint16_t rpc_id, NetworkId entity_id, con
 // ── Internal helpers ────────────────────────────────────────────────────────
 
 std::vector<std::uint8_t> RpcManager::build_rpc_packet(std::uint16_t rpc_id,
-                                                        const serialization::BitStream& args) const {
+                                                       const serialization::BitStream& args) const {
     auto span = args.span();
     if (max_payload_size_ > 0 && span.size() > max_payload_size_) {
         return {}; // oversized — silently dropped

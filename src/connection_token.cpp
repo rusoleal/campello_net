@@ -16,10 +16,8 @@ inline void store32le(std::uint8_t* p, std::uint32_t v) noexcept {
 }
 
 inline std::uint32_t load32le(const std::uint8_t* p) noexcept {
-    return static_cast<std::uint32_t>(p[0]) |
-           (static_cast<std::uint32_t>(p[1]) << 8) |
-           (static_cast<std::uint32_t>(p[2]) << 16) |
-           (static_cast<std::uint32_t>(p[3]) << 24);
+    return static_cast<std::uint32_t>(p[0]) | (static_cast<std::uint32_t>(p[1]) << 8) |
+           (static_cast<std::uint32_t>(p[2]) << 16) | (static_cast<std::uint32_t>(p[3]) << 24);
 }
 
 inline void store64le(std::uint8_t* p, std::uint64_t v) noexcept {
@@ -34,14 +32,10 @@ inline void store64le(std::uint8_t* p, std::uint64_t v) noexcept {
 }
 
 inline std::uint64_t load64le(const std::uint8_t* p) noexcept {
-    return static_cast<std::uint64_t>(p[0]) |
-           (static_cast<std::uint64_t>(p[1]) << 8) |
-           (static_cast<std::uint64_t>(p[2]) << 16) |
-           (static_cast<std::uint64_t>(p[3]) << 24) |
-           (static_cast<std::uint64_t>(p[4]) << 32) |
-           (static_cast<std::uint64_t>(p[5]) << 40) |
-           (static_cast<std::uint64_t>(p[6]) << 48) |
-           (static_cast<std::uint64_t>(p[7]) << 56);
+    return static_cast<std::uint64_t>(p[0]) | (static_cast<std::uint64_t>(p[1]) << 8) |
+           (static_cast<std::uint64_t>(p[2]) << 16) | (static_cast<std::uint64_t>(p[3]) << 24) |
+           (static_cast<std::uint64_t>(p[4]) << 32) | (static_cast<std::uint64_t>(p[5]) << 40) |
+           (static_cast<std::uint64_t>(p[6]) << 48) | (static_cast<std::uint64_t>(p[7]) << 56);
 }
 
 inline void store16le(std::uint8_t* p, std::uint16_t v) noexcept {
@@ -50,15 +44,13 @@ inline void store16le(std::uint8_t* p, std::uint16_t v) noexcept {
 }
 
 inline std::uint16_t load16le(const std::uint8_t* p) noexcept {
-    return static_cast<std::uint16_t>(p[0]) |
-           (static_cast<std::uint16_t>(p[1]) << 8);
+    return static_cast<std::uint16_t>(p[0]) | (static_cast<std::uint16_t>(p[1]) << 8);
 }
 
 // Simple nonce filler: mixes time, expiry, and a counter to produce
 // a deterministic-but-unique value for each token.  Not cryptographic
 // randomness, but sufficient because the HMAC provides authenticity.
-void fill_nonce(std::uint8_t nonce[16], std::uint32_t time, std::uint16_t expiry,
-                std::uint64_t reserved) noexcept {
+void fill_nonce(std::uint8_t nonce[16], std::uint32_t time, std::uint16_t expiry, std::uint64_t reserved) noexcept {
     store32le(nonce + 0, time);
     store16le(nonce + 4, expiry);
     store64le(nonce + 6, reserved);
@@ -76,10 +68,8 @@ void fill_nonce(std::uint8_t nonce[16], std::uint32_t time, std::uint16_t expiry
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-bool ConnectionToken::generate(std::uint8_t out_token[SIZE],
-                               const std::uint8_t secret[32],
-                               std::uint32_t expiry_seconds,
-                               std::uint64_t reserved_client_id,
+bool ConnectionToken::generate(std::uint8_t out_token[SIZE], const std::uint8_t secret[32],
+                               std::uint32_t expiry_seconds, std::uint64_t reserved_client_id,
                                std::uint32_t current_time_unix) noexcept {
     if (expiry_seconds == 0 || expiry_seconds > 86400) {
         // Clamp to reasonable range: 1 second .. 24 hours.
@@ -91,8 +81,7 @@ bool ConnectionToken::generate(std::uint8_t out_token[SIZE],
     store32le(out_token + 0, current_time_unix);
     store16le(out_token + 4, static_cast<std::uint16_t>(expiry_seconds));
     store64le(out_token + 6, reserved_client_id);
-    fill_nonce(out_token + 14, current_time_unix,
-               static_cast<std::uint16_t>(expiry_seconds), reserved_client_id);
+    fill_nonce(out_token + 14, current_time_unix, static_cast<std::uint16_t>(expiry_seconds), reserved_client_id);
     out_token[30] = 0;
     out_token[31] = 0;
 
@@ -100,8 +89,7 @@ bool ConnectionToken::generate(std::uint8_t out_token[SIZE],
     return true;
 }
 
-bool ConnectionToken::validate(const std::uint8_t token[SIZE],
-                               const std::uint8_t secret[32],
+bool ConnectionToken::validate(const std::uint8_t token[SIZE], const std::uint8_t secret[32],
                                std::uint32_t current_time_unix) noexcept {
     // Verify reserved bytes are zero.
     if (token[30] != 0 || token[31] != 0)

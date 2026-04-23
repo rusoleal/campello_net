@@ -467,7 +467,8 @@ TEST_CASE("Delta compression sends smaller packets after ack") {
     std::vector<EntitySnapshot> to_send;
     for (const auto& cur : delta_sb.entities) {
         auto it = baseline_map.find(cur.id);
-        if (it == baseline_map.end() || !std::equal(it->second.begin(), it->second.end(), cur.data.begin(), cur.data.end())) {
+        if (it == baseline_map.end() ||
+            !std::equal(it->second.begin(), it->second.end(), cur.data.begin(), cur.data.end())) {
             to_send.push_back(cur);
         }
     }

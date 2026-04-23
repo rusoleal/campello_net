@@ -1,11 +1,9 @@
-#include <catch2/catch_test_macros.hpp>
-
 #include <campello_net/network_entity.hpp>
 #include <campello_net/network_manager.hpp>
 #include <campello_net/network_replication.hpp>
 #include <campello_net/serialization/bit_stream.hpp>
 #include <campello_net/transport/loopback_transport.hpp>
-
+#include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <thread>
@@ -38,7 +36,9 @@ struct MallocCounter {
     struct mallinfo2 before{};
 #endif
 
-    MallocCounter() { reset(); }
+    MallocCounter() {
+        reset();
+    }
 
     void reset() {
 #ifdef __APPLE__
@@ -54,9 +54,8 @@ struct MallocCounter {
 #ifdef __APPLE__
         malloc_statistics_t after{};
         malloc_zone_statistics(malloc_default_zone(), &after);
-        return static_cast<std::size_t>(after.size_in_use > before.size_in_use
-                                            ? after.size_in_use - before.size_in_use
-                                            : 0);
+        return static_cast<std::size_t>(after.size_in_use > before.size_in_use ? after.size_in_use - before.size_in_use
+                                                                               : 0);
 #elif defined(_WIN32) && defined(_MSC_VER)
         _CrtMemState after{};
         _CrtMemCheckpoint(&after);
@@ -65,9 +64,7 @@ struct MallocCounter {
         return static_cast<std::size_t>(diff.lSizes[_NORMAL_BLOCK]);
 #else
         struct mallinfo2 after = mallinfo2();
-        return static_cast<std::size_t>(after.uordblks > before.uordblks
-                                            ? after.uordblks - before.uordblks
-                                            : 0);
+        return static_cast<std::size_t>(after.uordblks > before.uordblks ? after.uordblks - before.uordblks : 0);
 #endif
     }
 };
@@ -77,8 +74,7 @@ struct MallocCounter {
 struct AuditBridge : public INetworkEntityBridge, public INetworkReplicationBridge {
     std::unordered_map<NetworkId, float> state;
 
-    EntityHandle spawn(PrefabId /*prefab*/, NetworkId net_id,
-                       const std::vector<std::uint8_t>& /*init_data*/) override {
+    EntityHandle spawn(PrefabId /*prefab*/, NetworkId net_id, const std::vector<std::uint8_t>& /*init_data*/) override {
         state[net_id] = 0.0f;
         return static_cast<EntityHandle>(net_id);
     }
@@ -89,7 +85,8 @@ struct AuditBridge : public INetworkEntityBridge, public INetworkReplicationBrid
 
     bool serialize_entity(NetworkId net_id, BitStream& stream) override {
         auto it = state.find(net_id);
-        if (it == state.end()) return false;
+        if (it == state.end())
+            return false;
         stream.write_float(it->second);
         return true;
     }

@@ -478,8 +478,8 @@ private:
         std::cout << "+";
         for (int x = 0; x < gw; ++x)
             std::cout << "-";
-        std::cout << "+  Entities: " << bridge_.state.size() << " | Input: " << static_cast<int>(input_.dx) << "," << static_cast<int>(input_.dy)
-                  << " | Q=quit\n";
+        std::cout << "+  Entities: " << bridge_.state.size() << " | Input: " << static_cast<int>(input_.dx) << ","
+                  << static_cast<int>(input_.dy) << " | Q=quit\n";
     }
 
     NetworkManager net_;

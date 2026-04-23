@@ -120,14 +120,13 @@ struct ScoreState {
 
 class PongBridge : public INetworkEntityBridge, public INetworkReplicationBridge {
 public:
-    std::unordered_map<NetworkId, float> paddle_y; // paddle centre Y by actual NetId
+    std::unordered_map<NetworkId, float> paddle_y;         // paddle centre Y by actual NetId
     std::unordered_map<NetworkId, PrefabId> entity_prefab; // track prefab per net_id
     BallState ball;
     bool has_ball = false;
     ScoreState score;
 
-    EntityHandle spawn(PrefabId prefab, NetworkId net_id,
-                       const std::vector<std::uint8_t>& /*init_data*/) override {
+    EntityHandle spawn(PrefabId prefab, NetworkId net_id, const std::vector<std::uint8_t>& /*init_data*/) override {
         if (prefab == PREFAB_BALL) {
             ball_id_ = net_id;
             has_ball = true;
@@ -193,8 +192,7 @@ public:
         }
     }
 
-    void interpolate_entity(NetworkId net_id, BitStream& older, BitStream& newer,
-                            float t) override {
+    void interpolate_entity(NetworkId net_id, BitStream& older, BitStream& newer, float t) override {
         if (net_id == ball_id_ && has_ball) {
             BallState b0{}, b1{};
             older.read_float(b0.x);
@@ -229,8 +227,12 @@ public:
 class PongServer {
 public:
     explicit PongServer(std::uint16_t port) {
-        net_.on_client_connected([this](ClientId id) { on_client_connected(id); });
-        net_.on_client_disconnected([this](ClientId id) { on_client_disconnected(id); });
+        net_.on_client_connected([this](ClientId id) {
+            on_client_connected(id);
+        });
+        net_.on_client_disconnected([this](ClientId id) {
+            on_client_disconnected(id);
+        });
 
         rpc_.set_network_manager(&net_);
         rpc_.register_handler(RPC_PADDLE_INPUT, [this](const RpcParams& params, BitStream& args) {
@@ -326,14 +328,12 @@ private:
             if (player_slots_[i] == 0)
                 continue;
             auto it = player_inputs_.find(player_slots_[i]);
-            float dy = (it != player_inputs_.end()) ? static_cast<float>(it->second) * PADDLE_SPEED * DT
-                                                     : 0.0f;
+            float dy = (it != player_inputs_.end()) ? static_cast<float>(it->second) * PADDLE_SPEED * DT : 0.0f;
             NetworkId pid = paddle_net_ids_[i];
             auto pit = bridge_.paddle_y.find(pid);
             if (pit != bridge_.paddle_y.end()) {
                 pit->second += dy;
-                pit->second = std::clamp(pit->second, PADDLE_H / 2.0f + 1.0f,
-                                         WORLD_H - PADDLE_H / 2.0f - 1.0f);
+                pit->second = std::clamp(pit->second, PADDLE_H / 2.0f + 1.0f, WORLD_H - PADDLE_H / 2.0f - 1.0f);
                 repl_.mark_dirty(pid);
             }
         }
@@ -407,8 +407,7 @@ private:
 
 class PongClient {
 public:
-    PongClient(const std::string& host, std::uint16_t port, std::string name)
-        : name_(std::move(name)) {
+    PongClient(const std::string& host, std::uint16_t port, std::string name) : name_(std::move(name)) {
         rpc_.set_network_manager(&net_);
         net_.set_rpc_manager(&rpc_);
 
@@ -519,8 +518,7 @@ private:
             return;
 
         predicted_y_ += static_cast<float>(input_dy_) * PADDLE_SPEED * dt;
-        predicted_y_ = std::clamp(predicted_y_, PADDLE_H / 2.0f + 1.0f,
-                                  WORLD_H - PADDLE_H / 2.0f - 1.0f);
+        predicted_y_ = std::clamp(predicted_y_, PADDLE_H / 2.0f + 1.0f, WORLD_H - PADDLE_H / 2.0f - 1.0f);
 
         // Gentle reconciliation toward server-authoritative position
         auto it = bridge_.paddle_y.find(my_paddle_id_);
@@ -540,8 +538,7 @@ private:
     void render() {
         clear_screen();
 
-        std::cout << "  P1: " << static_cast<int>(bridge_.score.p1)
-                  << "     P2: " << static_cast<int>(bridge_.score.p2)
+        std::cout << "  P1: " << static_cast<int>(bridge_.score.p1) << "     P2: " << static_cast<int>(bridge_.score.p2)
                   << "     You: " << name_ << "\n";
 
         std::cout << "+";
@@ -552,8 +549,7 @@ private:
 
         int gw = static_cast<int>(WORLD_W);
         int gh = static_cast<int>(WORLD_H);
-        std::vector<std::string> grid(static_cast<std::size_t>(gh),
-                                      std::string(static_cast<std::size_t>(gw), ' '));
+        std::vector<std::string> grid(static_cast<std::size_t>(gh), std::string(static_cast<std::size_t>(gw), ' '));
 
         if (bridge_.has_ball) {
             int bx = static_cast<int>(std::round(bridge_.ball.x));

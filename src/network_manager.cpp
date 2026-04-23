@@ -246,9 +246,9 @@ void NetworkManager::Impl::process_system_message(ClientId sender_id, const tran
         if (config.require_connection_token) {
             token_valid = false;
             if (len >= ConnectionToken::SIZE) {
-                std::uint32_t now = static_cast<std::uint32_t>(
-                    std::chrono::duration_cast<std::chrono::seconds>(
-                        std::chrono::steady_clock::now().time_since_epoch()).count());
+                std::uint32_t now = static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                                                   std::chrono::steady_clock::now().time_since_epoch())
+                                                                   .count());
                 token_valid = ConnectionToken::validate(data, config.connection_token_secret.data(), now);
                 if (token_valid) {
                     // Shrink len so the token bytes are not passed to on_approval
@@ -605,7 +605,8 @@ void NetworkManager::Impl::send_connect_request() {
         std::memcpy(packet.data() + 3, client_token.data(), client_token.size());
         transport->send(packet.data(), packet.size(), transport::PacketReliability::ReliableOrdered);
     } else {
-        std::array<std::uint8_t, 3> packet{SYS_MAGIC[0], SYS_MAGIC[1], static_cast<std::uint8_t>(SysType::ConnectRequest)};
+        std::array<std::uint8_t, 3> packet{SYS_MAGIC[0], SYS_MAGIC[1],
+                                           static_cast<std::uint8_t>(SysType::ConnectRequest)};
         transport->send(packet.data(), packet.size(), transport::PacketReliability::ReliableOrdered);
     }
     awaiting_accept = true;
@@ -1006,10 +1007,8 @@ bool NetworkManager::generate_connection_token(std::uint8_t out_token[Connection
         return false;
 
     std::uint32_t now = static_cast<std::uint32_t>(
-        std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count());
-    return ConnectionToken::generate(out_token, impl_->config.connection_token_secret.data(),
-                                     expiry_seconds, 0, now);
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+    return ConnectionToken::generate(out_token, impl_->config.connection_token_secret.data(), expiry_seconds, 0, now);
 }
 
 // ── Queries ─────────────────────────────────────────────────────────────────

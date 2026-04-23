@@ -47,7 +47,7 @@ public:
 
         // ── Connection token authentication ──
         std::array<std::uint8_t, 32> connection_token_secret{}; ///< Server-side HMAC key
-        bool require_connection_token = false;                    ///< Reject clients without valid token
+        bool require_connection_token = false;                  ///< Reject clients without valid token
     };
 
     // ── Lifecycle ────────────────────────────────────────────────────────────

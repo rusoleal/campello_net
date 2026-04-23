@@ -1,9 +1,7 @@
+#include <array>
 #include <campello_net/transport/encrypted_transport.hpp>
 #include <campello_net/transport/loopback_transport.hpp>
-
 #include <catch2/catch_test_macros.hpp>
-
-#include <array>
 #include <cstring>
 #include <string_view>
 
@@ -13,7 +11,8 @@ using namespace systems::leal::campello_net::transport;
 
 static std::array<std::uint8_t, 32> make_test_key(std::uint8_t seed) {
     std::array<std::uint8_t, 32> key{};
-    for (std::size_t i = 0; i < 32; ++i) key[i] = static_cast<std::uint8_t>(seed + i);
+    for (std::size_t i = 0; i < 32; ++i)
+        key[i] = static_cast<std::uint8_t>(seed + i);
     return key;
 }
 
@@ -81,8 +80,8 @@ TEST_CASE("EncryptedTransport server send_to targets client", "[transport][encry
 
     // Server now sends targeted reply.
     const char* reply = "secret reply from server";
-    REQUIRE(server.send_to(client_addr, reinterpret_cast<const std::uint8_t*>(reply),
-                           std::strlen(reply) + 1, PacketReliability::ReliableOrdered));
+    REQUIRE(server.send_to(client_addr, reinterpret_cast<const std::uint8_t*>(reply), std::strlen(reply) + 1,
+                           PacketReliability::ReliableOrdered));
 
     client.poll();
 
@@ -121,9 +120,8 @@ TEST_CASE("EncryptedTransport rejects tampered packet", "[transport][encrypted]"
     const char* plaintext = "tamper test";
     std::size_t pt_len = std::strlen(plaintext) + 1;
     std::vector<std::uint8_t> ciphertext(pt_len + ChaCha20Poly1305::TAG_SIZE);
-    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0,
-                                   reinterpret_cast<const std::uint8_t*>(plaintext), pt_len,
-                                   ciphertext.data(), ciphertext.size()));
+    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0, reinterpret_cast<const std::uint8_t*>(plaintext),
+                                   pt_len, ciphertext.data(), ciphertext.size()));
 
     // Prepend nonce to form the on-wire format.
     std::vector<std::uint8_t> packet;
@@ -149,9 +147,8 @@ TEST_CASE("EncryptedTransport rejects tampered packet", "[transport][encrypted]"
     // Now tamper with the ciphertext and send again (counter 1).
     nonce[11] = 1; // bump counter so it's not a replay
     std::vector<std::uint8_t> ciphertext2(pt_len + ChaCha20Poly1305::TAG_SIZE);
-    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0,
-                                   reinterpret_cast<const std::uint8_t*>(plaintext), pt_len,
-                                   ciphertext2.data(), ciphertext2.size()));
+    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0, reinterpret_cast<const std::uint8_t*>(plaintext),
+                                   pt_len, ciphertext2.data(), ciphertext2.size()));
 
     // Corrupt a byte in the middle of the ciphertext.
     ciphertext2[5] ^= 0xFF;
@@ -195,9 +192,8 @@ TEST_CASE("EncryptedTransport rejects replayed counter", "[transport][encrypted]
     std::size_t pt_len = std::strlen(plaintext) + 1;
 
     std::vector<std::uint8_t> ciphertext(pt_len + ChaCha20Poly1305::TAG_SIZE);
-    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0,
-                                   reinterpret_cast<const std::uint8_t*>(plaintext), pt_len,
-                                   ciphertext.data(), ciphertext.size()));
+    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0, reinterpret_cast<const std::uint8_t*>(plaintext),
+                                   pt_len, ciphertext.data(), ciphertext.size()));
 
     std::vector<std::uint8_t> packet;
     packet.insert(packet.end(), nonce, nonce + ChaCha20Poly1305::NONCE_SIZE);
@@ -247,9 +243,8 @@ TEST_CASE("EncryptedTransport rejects old counter outside window", "[transport][
     store_counter_le(nonce + 4, 100);
 
     std::vector<std::uint8_t> ciphertext(pt_len + ChaCha20Poly1305::TAG_SIZE);
-    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0,
-                                   reinterpret_cast<const std::uint8_t*>(plaintext), pt_len,
-                                   ciphertext.data(), ciphertext.size()));
+    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0, reinterpret_cast<const std::uint8_t*>(plaintext),
+                                   pt_len, ciphertext.data(), ciphertext.size()));
 
     std::vector<std::uint8_t> packet;
     packet.insert(packet.end(), nonce, nonce + ChaCha20Poly1305::NONCE_SIZE);
@@ -269,9 +264,8 @@ TEST_CASE("EncryptedTransport rejects old counter outside window", "[transport][
     // Now send packet with counter = 10 (way behind window of 64) from same injector.
     store_counter_le(nonce + 4, 10);
     std::vector<std::uint8_t> ciphertext2(pt_len + ChaCha20Poly1305::TAG_SIZE);
-    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0,
-                                   reinterpret_cast<const std::uint8_t*>(plaintext), pt_len,
-                                   ciphertext2.data(), ciphertext2.size()));
+    REQUIRE(ChaCha20Poly1305::seal(c2s_key.data(), nonce, nullptr, 0, reinterpret_cast<const std::uint8_t*>(plaintext),
+                                   pt_len, ciphertext2.data(), ciphertext2.size()));
 
     std::vector<std::uint8_t> packet2;
     packet2.insert(packet2.end(), nonce, nonce + ChaCha20Poly1305::NONCE_SIZE);

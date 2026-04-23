@@ -33,8 +33,8 @@ public:
 
     /// Client-side: interpolate between two snapshots for smooth rendering.
     /// Default implementation falls back to the newer state.
-    virtual void interpolate_entity(NetworkId net_id, serialization::BitStream& older,
-                                    serialization::BitStream& newer, float t) {
+    virtual void interpolate_entity(NetworkId net_id, serialization::BitStream& older, serialization::BitStream& newer,
+                                    float t) {
         (void)net_id;
         (void)older;
         (void)t;
@@ -44,8 +44,7 @@ public:
     /// Client-side: briefly predict forward when the newest snapshot is too old.
     /// @p delta_time is how far ahead of the newest snapshot we are rendering (seconds).
     /// Default implementation falls back to the newest state.
-    virtual void extrapolate_entity(NetworkId net_id, serialization::BitStream& newest,
-                                    float delta_time) {
+    virtual void extrapolate_entity(NetworkId net_id, serialization::BitStream& newest, float delta_time) {
         (void)net_id;
         (void)delta_time;
         deserialize_entity(net_id, newest);
@@ -147,8 +146,8 @@ public:
 private:
     struct Snapshot {
         std::uint16_t id = 0;
-        std::vector<std::uint8_t> blob;         ///< Owns the serialized entity data.
-        std::vector<EntitySnapshot> entities;   ///< Spans into @p blob.
+        std::vector<std::uint8_t> blob;       ///< Owns the serialized entity data.
+        std::vector<EntitySnapshot> entities; ///< Spans into @p blob.
     };
     std::array<Snapshot, MAX_SNAPSHOTS> snapshots_{};
     std::size_t count_ = 0;
@@ -165,8 +164,8 @@ public:
     struct Snapshot {
         std::uint16_t snapshot_id = 0;
         float receive_time = 0.0f;
-        std::vector<std::uint8_t> blob;         ///< Owns the serialized entity data.
-        std::vector<EntitySnapshot> entities;   ///< Spans into @p blob.
+        std::vector<std::uint8_t> blob;       ///< Owns the serialized entity data.
+        std::vector<EntitySnapshot> entities; ///< Spans into @p blob.
     };
 
     void store(std::uint16_t snapshot_id, float receive_time, std::span<const EntitySnapshot> entities);
@@ -174,12 +173,11 @@ public:
     /// Find the two snapshots bracketing @p target_time.
     /// Returns false if fewer than two snapshots are stored.
     /// @p t is the blend factor in [0, 1] (clamped at edges).
-    [[nodiscard]] bool find_bracketing(float target_time, const Snapshot*& out_older,
-                                       const Snapshot*& out_newer, float& t) const;
+    [[nodiscard]] bool find_bracketing(float target_time, const Snapshot*& out_older, const Snapshot*& out_newer,
+                                       float& t) const;
 
     /// Search for an entity inside a specific snapshot. Returns an empty span if absent.
-    [[nodiscard]] std::span<const std::uint8_t> find_entity(const Snapshot& snap,
-                                                             NetworkId net_id) const;
+    [[nodiscard]] std::span<const std::uint8_t> find_entity(const Snapshot& snap, NetworkId net_id) const;
 
     void clear();
 
@@ -315,10 +313,8 @@ public:
     /// Query interpolated state for a single entity without applying it.
     /// The returned BitStreams point into the internal buffer and are only valid
     /// until the next store or until the buffer wraps.
-    [[nodiscard]] bool query_interpolated_entity(NetworkId net_id, float render_time,
-                                                  serialization::BitStream& older,
-                                                  serialization::BitStream& newer,
-                                                  float& t) const;
+    [[nodiscard]] bool query_interpolated_entity(NetworkId net_id, float render_time, serialization::BitStream& older,
+                                                 serialization::BitStream& newer, float& t) const;
 
     // ── Queries ──────────────────────────────────────────────────────────────
 

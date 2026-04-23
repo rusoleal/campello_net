@@ -26,11 +26,9 @@ public:
     /// @param out Output buffer. Must be at least plaintext_len + TAG_SIZE bytes.
     /// @param out_len Capacity of out buffer.
     /// @return true on success, false if out_len is too small.
-    static bool seal(const std::uint8_t key[KEY_SIZE],
-                     const std::uint8_t nonce[NONCE_SIZE],
-                     const std::uint8_t* aad, std::size_t aad_len,
-                     const std::uint8_t* plaintext, std::size_t plaintext_len,
-                     std::uint8_t* out, std::size_t out_len);
+    static bool seal(const std::uint8_t key[KEY_SIZE], const std::uint8_t nonce[NONCE_SIZE], const std::uint8_t* aad,
+                     std::size_t aad_len, const std::uint8_t* plaintext, std::size_t plaintext_len, std::uint8_t* out,
+                     std::size_t out_len);
 
     /// @brief Decrypt and verify.
     ///
@@ -43,19 +41,16 @@ public:
     /// @param out Output buffer for plaintext. Must be at least ciphertext_len - TAG_SIZE bytes.
     /// @param out_len Capacity of out buffer.
     /// @return true if decryption and authentication succeed, false otherwise.
-    static bool open(const std::uint8_t key[KEY_SIZE],
-                     const std::uint8_t nonce[NONCE_SIZE],
-                     const std::uint8_t* aad, std::size_t aad_len,
-                     const std::uint8_t* ciphertext, std::size_t ciphertext_len,
-                     std::uint8_t* out, std::size_t out_len);
+    static bool open(const std::uint8_t key[KEY_SIZE], const std::uint8_t nonce[NONCE_SIZE], const std::uint8_t* aad,
+                     std::size_t aad_len, const std::uint8_t* ciphertext, std::size_t ciphertext_len, std::uint8_t* out,
+                     std::size_t out_len);
 
     /// @brief Derive two directional session keys from a single master key.
     ///
     /// Uses one ChaCha20 block (counter=0, nonce=0) to generate 64 bytes of
     /// key material. The first 32 bytes become the client→server key;
     /// the second 32 bytes become the server→client key.
-    static void derive_keys(const std::uint8_t master_key[KEY_SIZE],
-                            std::uint8_t client_to_server[KEY_SIZE],
+    static void derive_keys(const std::uint8_t master_key[KEY_SIZE], std::uint8_t client_to_server[KEY_SIZE],
                             std::uint8_t server_to_client[KEY_SIZE]);
 };
 

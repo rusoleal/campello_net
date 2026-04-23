@@ -9,10 +9,8 @@ namespace {
 // ── Little-endian helpers ───────────────────────────────────────────────────
 
 inline std::uint32_t load32le(const std::uint8_t* p) noexcept {
-    return static_cast<std::uint32_t>(p[0]) |
-           (static_cast<std::uint32_t>(p[1]) << 8) |
-           (static_cast<std::uint32_t>(p[2]) << 16) |
-           (static_cast<std::uint32_t>(p[3]) << 24);
+    return static_cast<std::uint32_t>(p[0]) | (static_cast<std::uint32_t>(p[1]) << 8) |
+           (static_cast<std::uint32_t>(p[2]) << 16) | (static_cast<std::uint32_t>(p[3]) << 24);
 }
 
 inline void store32le(std::uint8_t* p, std::uint32_t v) noexcept {
@@ -34,27 +32,33 @@ inline std::uint32_t rotl(std::uint32_t x, int n) noexcept {
 // ── ChaCha20 ────────────────────────────────────────────────────────────────
 
 inline void qr(std::uint32_t x[16], int a, int b, int c, int d) noexcept {
-    x[a] += x[b]; x[d] ^= x[a]; x[d] = rotl(x[d], 16);
-    x[c] += x[d]; x[b] ^= x[c]; x[b] = rotl(x[b], 12);
-    x[a] += x[b]; x[d] ^= x[a]; x[d] = rotl(x[d], 8);
-    x[c] += x[d]; x[b] ^= x[c]; x[b] = rotl(x[b], 7);
+    x[a] += x[b];
+    x[d] ^= x[a];
+    x[d] = rotl(x[d], 16);
+    x[c] += x[d];
+    x[b] ^= x[c];
+    x[b] = rotl(x[b], 12);
+    x[a] += x[b];
+    x[d] ^= x[a];
+    x[d] = rotl(x[d], 8);
+    x[c] += x[d];
+    x[b] ^= x[c];
+    x[b] = rotl(x[b], 7);
 }
 
-void chacha20_block(const std::uint8_t key[32],
-                    std::uint32_t counter,
-                    const std::uint8_t nonce[12],
+void chacha20_block(const std::uint8_t key[32], std::uint32_t counter, const std::uint8_t nonce[12],
                     std::uint8_t out[64]) noexcept {
     std::uint32_t state[16];
-    state[0]  = 0x61707865;
-    state[1]  = 0x3320646e;
-    state[2]  = 0x79622d32;
-    state[3]  = 0x6b206574;
-    state[4]  = load32le(key + 0);
-    state[5]  = load32le(key + 4);
-    state[6]  = load32le(key + 8);
-    state[7]  = load32le(key + 12);
-    state[8]  = load32le(key + 16);
-    state[9]  = load32le(key + 20);
+    state[0] = 0x61707865;
+    state[1] = 0x3320646e;
+    state[2] = 0x79622d32;
+    state[3] = 0x6b206574;
+    state[4] = load32le(key + 0);
+    state[5] = load32le(key + 4);
+    state[6] = load32le(key + 8);
+    state[7] = load32le(key + 12);
+    state[8] = load32le(key + 16);
+    state[9] = load32le(key + 20);
     state[10] = load32le(key + 24);
     state[11] = load32le(key + 28);
     state[12] = counter;
@@ -85,10 +89,7 @@ void chacha20_block(const std::uint8_t key[32],
     }
 }
 
-void chacha20_crypt(const std::uint8_t key[32],
-                    const std::uint8_t nonce[12],
-                    std::uint32_t counter,
-                    std::uint8_t* data,
+void chacha20_crypt(const std::uint8_t key[32], const std::uint8_t nonce[12], std::uint32_t counter, std::uint8_t* data,
                     std::size_t len) noexcept {
     std::uint8_t block[64];
     std::size_t offset = 0;
@@ -110,8 +111,8 @@ struct Poly1305State {
     std::uint32_t r[5];   // clamped key (26-bit limbs)
     std::uint32_t h[5];   // accumulator (26-bit limbs)
     std::uint32_t pad[4]; // s (32-bit words)
-    std::size_t   leftover;
-    std::uint8_t  buffer[16];
+    std::size_t leftover;
+    std::uint8_t buffer[16];
 };
 
 void poly1305_init(Poly1305State& st, const std::uint8_t key[32]) noexcept {
@@ -121,12 +122,12 @@ void poly1305_init(Poly1305State& st, const std::uint8_t key[32]) noexcept {
     // bottom bit clear at bytes 4,8,12.
     std::uint8_t clamped[16];
     std::memcpy(clamped, key, 16);
-    clamped[3]  &= 0x0f;
-    clamped[7]  &= 0x0f;
+    clamped[3] &= 0x0f;
+    clamped[7] &= 0x0f;
     clamped[11] &= 0x0f;
     clamped[15] &= 0x0f;
-    clamped[4]  &= 0xfe;
-    clamped[8]  &= 0xfe;
+    clamped[4] &= 0xfe;
+    clamped[8] &= 0xfe;
     clamped[12] &= 0xfe;
 
     std::uint32_t t0 = load32le(clamped + 0);
@@ -146,8 +147,7 @@ void poly1305_init(Poly1305State& st, const std::uint8_t key[32]) noexcept {
     st.pad[3] = load32le(key + 28);
 }
 
-inline void poly1305_blocks(Poly1305State& st, const std::uint8_t* m,
-                            std::size_t bytes, std::uint32_t hibit) noexcept {
+inline void poly1305_blocks(Poly1305State& st, const std::uint8_t* m, std::size_t bytes, std::uint32_t hibit) noexcept {
     const std::uint32_t s1 = st.r[1] * 5;
     const std::uint32_t s2 = st.r[2] * 5;
     const std::uint32_t s3 = st.r[3] * 5;
@@ -166,43 +166,45 @@ inline void poly1305_blocks(Poly1305State& st, const std::uint8_t* m,
         st.h[4] += (b3 >> 8) | hibit;
 
         // h *= r  (5×5 schoolbook multiply)
-        std::uint64_t d0 = static_cast<std::uint64_t>(st.h[0]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[1]) * s4 +
-                           static_cast<std::uint64_t>(st.h[2]) * s3 +
-                           static_cast<std::uint64_t>(st.h[3]) * s2 +
+        std::uint64_t d0 = static_cast<std::uint64_t>(st.h[0]) * st.r[0] + static_cast<std::uint64_t>(st.h[1]) * s4 +
+                           static_cast<std::uint64_t>(st.h[2]) * s3 + static_cast<std::uint64_t>(st.h[3]) * s2 +
                            static_cast<std::uint64_t>(st.h[4]) * s1;
         std::uint64_t d1 = static_cast<std::uint64_t>(st.h[0]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[1]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[2]) * s4 +
-                           static_cast<std::uint64_t>(st.h[3]) * s3 +
-                           static_cast<std::uint64_t>(st.h[4]) * s2;
+                           static_cast<std::uint64_t>(st.h[1]) * st.r[0] + static_cast<std::uint64_t>(st.h[2]) * s4 +
+                           static_cast<std::uint64_t>(st.h[3]) * s3 + static_cast<std::uint64_t>(st.h[4]) * s2;
         std::uint64_t d2 = static_cast<std::uint64_t>(st.h[0]) * st.r[2] +
                            static_cast<std::uint64_t>(st.h[1]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[2]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[3]) * s4 +
+                           static_cast<std::uint64_t>(st.h[2]) * st.r[0] + static_cast<std::uint64_t>(st.h[3]) * s4 +
                            static_cast<std::uint64_t>(st.h[4]) * s3;
         std::uint64_t d3 = static_cast<std::uint64_t>(st.h[0]) * st.r[3] +
                            static_cast<std::uint64_t>(st.h[1]) * st.r[2] +
                            static_cast<std::uint64_t>(st.h[2]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[3]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[4]) * s4;
-        std::uint64_t d4 = static_cast<std::uint64_t>(st.h[0]) * st.r[4] +
-                           static_cast<std::uint64_t>(st.h[1]) * st.r[3] +
-                           static_cast<std::uint64_t>(st.h[2]) * st.r[2] +
-                           static_cast<std::uint64_t>(st.h[3]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[4]) * st.r[0];
+                           static_cast<std::uint64_t>(st.h[3]) * st.r[0] + static_cast<std::uint64_t>(st.h[4]) * s4;
+        std::uint64_t d4 =
+            static_cast<std::uint64_t>(st.h[0]) * st.r[4] + static_cast<std::uint64_t>(st.h[1]) * st.r[3] +
+            static_cast<std::uint64_t>(st.h[2]) * st.r[2] + static_cast<std::uint64_t>(st.h[3]) * st.r[1] +
+            static_cast<std::uint64_t>(st.h[4]) * st.r[0];
 
         // carry propagation (limbs are 26-bit)
         std::uint32_t c = static_cast<std::uint32_t>(d0 >> 26);
         st.h[0] = static_cast<std::uint32_t>(d0) & 0x3ffffff;
-        d1 += c; c = static_cast<std::uint32_t>(d1 >> 26); st.h[1] = static_cast<std::uint32_t>(d1) & 0x3ffffff;
-        d2 += c; c = static_cast<std::uint32_t>(d2 >> 26); st.h[2] = static_cast<std::uint32_t>(d2) & 0x3ffffff;
-        d3 += c; c = static_cast<std::uint32_t>(d3 >> 26); st.h[3] = static_cast<std::uint32_t>(d3) & 0x3ffffff;
-        d4 += c; c = static_cast<std::uint32_t>(d4 >> 26); st.h[4] = static_cast<std::uint32_t>(d4) & 0x3ffffff;
+        d1 += c;
+        c = static_cast<std::uint32_t>(d1 >> 26);
+        st.h[1] = static_cast<std::uint32_t>(d1) & 0x3ffffff;
+        d2 += c;
+        c = static_cast<std::uint32_t>(d2 >> 26);
+        st.h[2] = static_cast<std::uint32_t>(d2) & 0x3ffffff;
+        d3 += c;
+        c = static_cast<std::uint32_t>(d3 >> 26);
+        st.h[3] = static_cast<std::uint32_t>(d3) & 0x3ffffff;
+        d4 += c;
+        c = static_cast<std::uint32_t>(d4 >> 26);
+        st.h[4] = static_cast<std::uint32_t>(d4) & 0x3ffffff;
 
         // final reduction: h += c * 5  (because 2^130 ≡ 5 mod p)
         st.h[0] += c * 5;
-        c = (st.h[0] >> 26); st.h[0] &= 0x03ffffff;
+        c = (st.h[0] >> 26);
+        st.h[0] &= 0x03ffffff;
         st.h[1] += c;
 
         m += 16;
@@ -213,12 +215,14 @@ inline void poly1305_blocks(Poly1305State& st, const std::uint8_t* m,
 void poly1305_update(Poly1305State& st, const std::uint8_t* m, std::size_t bytes) noexcept {
     if (st.leftover) {
         std::size_t want = 16 - st.leftover;
-        if (want > bytes) want = bytes;
+        if (want > bytes)
+            want = bytes;
         std::memcpy(st.buffer + st.leftover, m, want);
         st.leftover += want;
         m += want;
         bytes -= want;
-        if (st.leftover < 16) return;
+        if (st.leftover < 16)
+            return;
         poly1305_blocks(st, st.buffer, 16, 1u << 24);
         st.leftover = 0;
     }
@@ -251,47 +255,49 @@ void poly1305_finish(Poly1305State& st, std::uint8_t mac[16]) noexcept {
         st.h[1] += ((b0 >> 26) | (b1 << 6)) & 0x3ffffff;
         st.h[2] += ((b1 >> 20) | (b2 << 12)) & 0x3ffffff;
         st.h[3] += ((b2 >> 14) | (b3 << 18)) & 0x3ffffff;
-        st.h[4] += (b3 >> 8);  // NO hibit for partial block
+        st.h[4] += (b3 >> 8); // NO hibit for partial block
 
         const std::uint32_t s1 = st.r[1] * 5;
         const std::uint32_t s2 = st.r[2] * 5;
         const std::uint32_t s3 = st.r[3] * 5;
         const std::uint32_t s4 = st.r[4] * 5;
 
-        std::uint64_t d0 = static_cast<std::uint64_t>(st.h[0]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[1]) * s4 +
-                           static_cast<std::uint64_t>(st.h[2]) * s3 +
-                           static_cast<std::uint64_t>(st.h[3]) * s2 +
+        std::uint64_t d0 = static_cast<std::uint64_t>(st.h[0]) * st.r[0] + static_cast<std::uint64_t>(st.h[1]) * s4 +
+                           static_cast<std::uint64_t>(st.h[2]) * s3 + static_cast<std::uint64_t>(st.h[3]) * s2 +
                            static_cast<std::uint64_t>(st.h[4]) * s1;
         std::uint64_t d1 = static_cast<std::uint64_t>(st.h[0]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[1]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[2]) * s4 +
-                           static_cast<std::uint64_t>(st.h[3]) * s3 +
-                           static_cast<std::uint64_t>(st.h[4]) * s2;
+                           static_cast<std::uint64_t>(st.h[1]) * st.r[0] + static_cast<std::uint64_t>(st.h[2]) * s4 +
+                           static_cast<std::uint64_t>(st.h[3]) * s3 + static_cast<std::uint64_t>(st.h[4]) * s2;
         std::uint64_t d2 = static_cast<std::uint64_t>(st.h[0]) * st.r[2] +
                            static_cast<std::uint64_t>(st.h[1]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[2]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[3]) * s4 +
+                           static_cast<std::uint64_t>(st.h[2]) * st.r[0] + static_cast<std::uint64_t>(st.h[3]) * s4 +
                            static_cast<std::uint64_t>(st.h[4]) * s3;
         std::uint64_t d3 = static_cast<std::uint64_t>(st.h[0]) * st.r[3] +
                            static_cast<std::uint64_t>(st.h[1]) * st.r[2] +
                            static_cast<std::uint64_t>(st.h[2]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[3]) * st.r[0] +
-                           static_cast<std::uint64_t>(st.h[4]) * s4;
-        std::uint64_t d4 = static_cast<std::uint64_t>(st.h[0]) * st.r[4] +
-                           static_cast<std::uint64_t>(st.h[1]) * st.r[3] +
-                           static_cast<std::uint64_t>(st.h[2]) * st.r[2] +
-                           static_cast<std::uint64_t>(st.h[3]) * st.r[1] +
-                           static_cast<std::uint64_t>(st.h[4]) * st.r[0];
+                           static_cast<std::uint64_t>(st.h[3]) * st.r[0] + static_cast<std::uint64_t>(st.h[4]) * s4;
+        std::uint64_t d4 =
+            static_cast<std::uint64_t>(st.h[0]) * st.r[4] + static_cast<std::uint64_t>(st.h[1]) * st.r[3] +
+            static_cast<std::uint64_t>(st.h[2]) * st.r[2] + static_cast<std::uint64_t>(st.h[3]) * st.r[1] +
+            static_cast<std::uint64_t>(st.h[4]) * st.r[0];
 
         std::uint32_t c = static_cast<std::uint32_t>(d0 >> 26);
         st.h[0] = static_cast<std::uint32_t>(d0) & 0x3ffffff;
-        d1 += c; c = static_cast<std::uint32_t>(d1 >> 26); st.h[1] = static_cast<std::uint32_t>(d1) & 0x3ffffff;
-        d2 += c; c = static_cast<std::uint32_t>(d2 >> 26); st.h[2] = static_cast<std::uint32_t>(d2) & 0x3ffffff;
-        d3 += c; c = static_cast<std::uint32_t>(d3 >> 26); st.h[3] = static_cast<std::uint32_t>(d3) & 0x3ffffff;
-        d4 += c; c = static_cast<std::uint32_t>(d4 >> 26); st.h[4] = static_cast<std::uint32_t>(d4) & 0x3ffffff;
+        d1 += c;
+        c = static_cast<std::uint32_t>(d1 >> 26);
+        st.h[1] = static_cast<std::uint32_t>(d1) & 0x3ffffff;
+        d2 += c;
+        c = static_cast<std::uint32_t>(d2 >> 26);
+        st.h[2] = static_cast<std::uint32_t>(d2) & 0x3ffffff;
+        d3 += c;
+        c = static_cast<std::uint32_t>(d3 >> 26);
+        st.h[3] = static_cast<std::uint32_t>(d3) & 0x3ffffff;
+        d4 += c;
+        c = static_cast<std::uint32_t>(d4 >> 26);
+        st.h[4] = static_cast<std::uint32_t>(d4) & 0x3ffffff;
         st.h[0] += c * 5;
-        c = (st.h[0] >> 26); st.h[0] &= 0x03ffffff;
+        c = (st.h[0] >> 26);
+        st.h[0] &= 0x03ffffff;
         st.h[1] += c;
     }
 
@@ -314,10 +320,8 @@ void poly1305_finish(Poly1305State& st, std::uint8_t mac[16]) noexcept {
 
 // ── AEAD construction ───────────────────────────────────────────────────────
 
-void aead_compute_tag(const std::uint8_t poly_key[32],
-                      const std::uint8_t* aad, std::size_t aad_len,
-                      const std::uint8_t* ciphertext, std::size_t ciphertext_len,
-                      std::uint8_t tag[16]) noexcept {
+void aead_compute_tag(const std::uint8_t poly_key[32], const std::uint8_t* aad, std::size_t aad_len,
+                      const std::uint8_t* ciphertext, std::size_t ciphertext_len, std::uint8_t tag[16]) noexcept {
     Poly1305State st;
     poly1305_init(st, poly_key);
 
@@ -351,11 +355,9 @@ void aead_compute_tag(const std::uint8_t poly_key[32],
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-bool ChaCha20Poly1305::seal(const std::uint8_t key[KEY_SIZE],
-                            const std::uint8_t nonce[NONCE_SIZE],
-                            const std::uint8_t* aad, std::size_t aad_len,
-                            const std::uint8_t* plaintext, std::size_t plaintext_len,
-                            std::uint8_t* out, std::size_t out_len) {
+bool ChaCha20Poly1305::seal(const std::uint8_t key[KEY_SIZE], const std::uint8_t nonce[NONCE_SIZE],
+                            const std::uint8_t* aad, std::size_t aad_len, const std::uint8_t* plaintext,
+                            std::size_t plaintext_len, std::uint8_t* out, std::size_t out_len) {
     if (out_len < plaintext_len + TAG_SIZE)
         return false;
 
@@ -373,11 +375,9 @@ bool ChaCha20Poly1305::seal(const std::uint8_t key[KEY_SIZE],
     return true;
 }
 
-bool ChaCha20Poly1305::open(const std::uint8_t key[KEY_SIZE],
-                            const std::uint8_t nonce[NONCE_SIZE],
-                            const std::uint8_t* aad, std::size_t aad_len,
-                            const std::uint8_t* ciphertext, std::size_t ciphertext_len,
-                            std::uint8_t* out, std::size_t out_len) {
+bool ChaCha20Poly1305::open(const std::uint8_t key[KEY_SIZE], const std::uint8_t nonce[NONCE_SIZE],
+                            const std::uint8_t* aad, std::size_t aad_len, const std::uint8_t* ciphertext,
+                            std::size_t ciphertext_len, std::uint8_t* out, std::size_t out_len) {
     if (ciphertext_len < TAG_SIZE)
         return false;
     if (out_len < ciphertext_len - TAG_SIZE)
@@ -408,9 +408,8 @@ bool ChaCha20Poly1305::open(const std::uint8_t key[KEY_SIZE],
     return true;
 }
 
-void ChaCha20Poly1305::derive_keys(const std::uint8_t master_key[KEY_SIZE],
-                                    std::uint8_t client_to_server[KEY_SIZE],
-                                    std::uint8_t server_to_client[KEY_SIZE]) {
+void ChaCha20Poly1305::derive_keys(const std::uint8_t master_key[KEY_SIZE], std::uint8_t client_to_server[KEY_SIZE],
+                                   std::uint8_t server_to_client[KEY_SIZE]) {
     std::uint8_t block[64];
     std::uint8_t zero_nonce[NONCE_SIZE] = {};
     chacha20_block(master_key, 0, zero_nonce, block);

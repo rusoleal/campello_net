@@ -30,8 +30,7 @@ public:
     /// @brief Wrap an inner transport and enable encryption with a pre-shared key.
     /// @param inner The underlying transport (e.g., UdpTransport).
     /// @param key 32-byte ChaCha20-Poly1305 key.
-    explicit EncryptedTransport(std::unique_ptr<ITransport> inner,
-                                std::span<const std::uint8_t> key);
+    explicit EncryptedTransport(std::unique_ptr<ITransport> inner, std::span<const std::uint8_t> key);
     ~EncryptedTransport() override;
 
     EncryptedTransport(const EncryptedTransport&) = delete;
@@ -51,8 +50,8 @@ public:
                  PacketReliability reliability) override;
     void poll() override;
 
-    bool pop_receive(std::uint8_t* buffer, std::size_t max_length,
-                     std::size_t& out_length, Address& out_sender) override;
+    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                     Address& out_sender) override;
 
     [[nodiscard]] float rtt() const noexcept override;
     [[nodiscard]] float packet_loss() const noexcept override;

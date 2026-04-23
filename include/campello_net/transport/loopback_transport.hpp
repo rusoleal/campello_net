@@ -77,7 +77,8 @@ public:
 
     void poll() override;
 
-    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length, Address& out_sender) override;
+    bool pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                     Address& out_sender) override;
 
     [[nodiscard]] float rtt() const noexcept override;
     [[nodiscard]] float packet_loss() const noexcept override;
@@ -95,7 +96,8 @@ private:
     std::unique_ptr<Impl> impl_;
 
     friend class LoopbackHub;
-    void enqueue_pending(const Address& sender, const std::uint8_t* data, std::size_t len, PacketReliability reliability);
+    void enqueue_pending(const Address& sender, const std::uint8_t* data, std::size_t len,
+                         PacketReliability reliability);
 };
 
 } // namespace systems::leal::campello_net::transport

@@ -59,8 +59,7 @@ public:
     /// Register a handler for incoming RPCs with id @p rpc_id.
     /// Overwrites any previous handler with the same id.
     /// @param authority Who is allowed to invoke this RPC (default: Anyone).
-    void register_handler(std::uint16_t rpc_id, Handler handler,
-                          RpcAuthority authority = RpcAuthority::Anyone);
+    void register_handler(std::uint16_t rpc_id, Handler handler, RpcAuthority authority = RpcAuthority::Anyone);
 
     /// Remove a previously registered handler. No-op if @p rpc_id was not registered.
     void unregister_handler(std::uint16_t rpc_id);
@@ -127,7 +126,7 @@ private:
     std::unordered_map<std::uint16_t, TokenBucket> rpc_rate_buckets_;
 
     [[nodiscard]] std::vector<std::uint8_t> build_rpc_packet(std::uint16_t rpc_id,
-                                                              const serialization::BitStream& args) const;
+                                                             const serialization::BitStream& args) const;
     void send_rpc(ClientId target_client, std::uint16_t rpc_id, const serialization::BitStream& args);
 };
 
@@ -167,7 +166,8 @@ template <typename... Args> void RpcManager::invoke_owner(std::uint16_t rpc_id, 
     send_rpc(owner, rpc_id, stream);
 }
 
-template <typename... Args> void RpcManager::invoke_not_owner(std::uint16_t rpc_id, NetworkId entity_id, Args&&... args) {
+template <typename... Args>
+void RpcManager::invoke_not_owner(std::uint16_t rpc_id, NetworkId entity_id, Args&&... args) {
     serialization::BitStream stream;
     (serialization::serialize(stream, std::forward<Args>(args)), ...);
     if (!net_ || !entity_mgr_)

@@ -8,8 +8,8 @@ using ClientId = std::uint64_t;
 
 /// Authority level required to invoke an RPC.
 enum class RpcAuthority {
-    Anyone,      ///< Any connected client can invoke (default).
-    ServerOnly,  ///< Only the server (sender == 0) can invoke; client→server rejected.
+    Anyone,     ///< Any connected client can invoke (default).
+    ServerOnly, ///< Only the server (sender == 0) can invoke; client→server rejected.
 };
 
 /// Context passed to every RPC handler.

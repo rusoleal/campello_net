@@ -7,8 +7,7 @@
 namespace systems::leal::campello_net {
 
 // Helper: fix up spans after a vector reallocation invalidates previous data().
-static void fixup_spans_after_realloc(std::vector<std::uint8_t>& blob,
-                                      std::vector<EntitySnapshot>& snaps,
+static void fixup_spans_after_realloc(std::vector<std::uint8_t>& blob, std::vector<EntitySnapshot>& snaps,
                                       const std::uint8_t* old_data) {
     if (blob.data() == old_data)
         return;
@@ -496,8 +495,7 @@ void NetworkReplicationManager::client_interpolate(float render_time) {
 
 bool NetworkReplicationManager::query_interpolated_entity(NetworkId net_id, float render_time,
                                                           serialization::BitStream& older,
-                                                          serialization::BitStream& newer,
-                                                          float& t) const {
+                                                          serialization::BitStream& newer, float& t) const {
     if (!interpolation_enabled_ || client_snapshot_buffer_.size() < 2) {
         return false;
     }
@@ -552,8 +550,8 @@ void ClientSnapshotBuffer::store(std::uint16_t snapshot_id, float receive_time,
     }
 }
 
-bool ClientSnapshotBuffer::find_bracketing(float target_time, const Snapshot*& out_older,
-                                           const Snapshot*& out_newer, float& t) const {
+bool ClientSnapshotBuffer::find_bracketing(float target_time, const Snapshot*& out_older, const Snapshot*& out_newer,
+                                           float& t) const {
     if (count_ < 2) {
         return false;
     }
@@ -599,8 +597,7 @@ bool ClientSnapshotBuffer::find_bracketing(float target_time, const Snapshot*& o
     return false; // Should not reach here with count_ >= 2.
 }
 
-std::span<const std::uint8_t> ClientSnapshotBuffer::find_entity(const Snapshot& snap,
-                                                                 NetworkId net_id) const {
+std::span<const std::uint8_t> ClientSnapshotBuffer::find_entity(const Snapshot& snap, NetworkId net_id) const {
     for (const auto& ent : snap.entities) {
         if (ent.id == net_id) {
             return ent.data;

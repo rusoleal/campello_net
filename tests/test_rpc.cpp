@@ -571,7 +571,6 @@ TEST_CASE("invoke_owner on server-owned entity does nothing") {
     server_net.stop();
 }
 
-
 TEST_CASE("RpcParams carries sender, timestamp and rtt") {
     Address server_addr("::1", 34595);
 
@@ -648,12 +647,18 @@ TEST_CASE("ServerOnly authority rejects client RPCs") {
 
     int received_anyone = 0;
     int received_server_only = 0;
-    server_rpc.register_handler(71, [&received_anyone](const RpcParams&, BitStream&) {
-        ++received_anyone;
-    }, RpcAuthority::Anyone);
-    server_rpc.register_handler(72, [&received_server_only](const RpcParams&, BitStream&) {
-        ++received_server_only;
-    }, RpcAuthority::ServerOnly);
+    server_rpc.register_handler(
+        71,
+        [&received_anyone](const RpcParams&, BitStream&) {
+            ++received_anyone;
+        },
+        RpcAuthority::Anyone);
+    server_rpc.register_handler(
+        72,
+        [&received_server_only](const RpcParams&, BitStream&) {
+            ++received_server_only;
+        },
+        RpcAuthority::ServerOnly);
 
     // Client invokes both RPCs
     client_rpc.invoke_server(71);

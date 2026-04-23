@@ -59,8 +59,7 @@ public:
     [[nodiscard]] bool is_relevant(NetworkId entity, ClientId client) const;
 
     /// Return all entities within @p radius of the given point.
-    void query_sphere(float x, float y, float z, float radius,
-                      std::vector<NetworkId>& out) const;
+    void query_sphere(float x, float y, float z, float radius, std::vector<NetworkId>& out) const;
 
     /// Return all entities visible to @p client.
     void query_visible(ClientId client_id, std::vector<NetworkId>& out) const;

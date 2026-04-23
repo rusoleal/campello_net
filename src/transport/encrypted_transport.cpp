@@ -42,14 +42,10 @@ inline void store_counter_le(std::uint8_t* dst, std::uint64_t v) noexcept {
 }
 
 inline std::uint64_t load_counter_le(const std::uint8_t* src) noexcept {
-    return static_cast<std::uint64_t>(src[0]) |
-           (static_cast<std::uint64_t>(src[1]) << 8) |
-           (static_cast<std::uint64_t>(src[2]) << 16) |
-           (static_cast<std::uint64_t>(src[3]) << 24) |
-           (static_cast<std::uint64_t>(src[4]) << 32) |
-           (static_cast<std::uint64_t>(src[5]) << 40) |
-           (static_cast<std::uint64_t>(src[6]) << 48) |
-           (static_cast<std::uint64_t>(src[7]) << 56);
+    return static_cast<std::uint64_t>(src[0]) | (static_cast<std::uint64_t>(src[1]) << 8) |
+           (static_cast<std::uint64_t>(src[2]) << 16) | (static_cast<std::uint64_t>(src[3]) << 24) |
+           (static_cast<std::uint64_t>(src[4]) << 32) | (static_cast<std::uint64_t>(src[5]) << 40) |
+           (static_cast<std::uint64_t>(src[6]) << 48) | (static_cast<std::uint64_t>(src[7]) << 56);
 }
 
 } // unnamed namespace
@@ -87,15 +83,13 @@ struct EncryptedTransport::Impl {
     }
 };
 
-EncryptedTransport::EncryptedTransport(std::unique_ptr<ITransport> inner,
-                                       std::span<const std::uint8_t> key)
+EncryptedTransport::EncryptedTransport(std::unique_ptr<ITransport> inner, std::span<const std::uint8_t> key)
     : impl_(std::make_unique<Impl>()) {
     impl_->inner = std::move(inner);
     std::array<std::uint8_t, KEY_SIZE> master_key{};
     std::size_t to_copy = key.size() < KEY_SIZE ? key.size() : KEY_SIZE;
     std::memcpy(master_key.data(), key.data(), to_copy);
-    ChaCha20Poly1305::derive_keys(master_key.data(),
-                                  impl_->client_to_server_key.data(),
+    ChaCha20Poly1305::derive_keys(master_key.data(), impl_->client_to_server_key.data(),
                                   impl_->server_to_client_key.data());
 }
 
@@ -120,8 +114,7 @@ bool EncryptedTransport::is_connected() const noexcept {
     return impl_->inner->is_connected();
 }
 
-bool EncryptedTransport::send(const std::uint8_t* data, std::size_t length,
-                              PacketReliability reliability) {
+bool EncryptedTransport::send(const std::uint8_t* data, std::size_t length, PacketReliability reliability) {
     // Client -> Server
     auto& st = impl_->client_state;
     std::uint64_t counter = st.outbound++;
@@ -136,9 +129,7 @@ bool EncryptedTransport::send(const std::uint8_t* data, std::size_t length,
 
     std::uint8_t* scratch = impl_->send_scratch.data();
 
-    if (!ChaCha20Poly1305::seal(impl_->client_to_server_key.data(), nonce,
-                                nullptr, 0,
-                                data, length,
+    if (!ChaCha20Poly1305::seal(impl_->client_to_server_key.data(), nonce, nullptr, 0, data, length,
                                 scratch + NONCE_SIZE, length + TAG_SIZE)) {
         return false;
     }
@@ -147,8 +138,8 @@ bool EncryptedTransport::send(const std::uint8_t* data, std::size_t length,
     return impl_->inner->send(scratch, sealed_len, reliability);
 }
 
-bool EncryptedTransport::send_to(const Address& address, const std::uint8_t* data,
-                                 std::size_t length, PacketReliability reliability) {
+bool EncryptedTransport::send_to(const Address& address, const std::uint8_t* data, std::size_t length,
+                                 PacketReliability reliability) {
     // Server -> Client
     auto& st = impl_->get_counter(&address);
     std::uint64_t counter = st.outbound++;
@@ -163,9 +154,7 @@ bool EncryptedTransport::send_to(const Address& address, const std::uint8_t* dat
 
     std::uint8_t* scratch = impl_->send_scratch.data();
 
-    if (!ChaCha20Poly1305::seal(impl_->server_to_client_key.data(), nonce,
-                                nullptr, 0,
-                                data, length,
+    if (!ChaCha20Poly1305::seal(impl_->server_to_client_key.data(), nonce, nullptr, 0, data, length,
                                 scratch + NONCE_SIZE, length + TAG_SIZE)) {
         return false;
     }
@@ -178,14 +167,13 @@ void EncryptedTransport::poll() {
     impl_->inner->poll();
 }
 
-bool EncryptedTransport::pop_receive(std::uint8_t* buffer, std::size_t max_length,
-                                     std::size_t& out_length, Address& out_sender) {
+bool EncryptedTransport::pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                                     Address& out_sender) {
     if (impl_->recv_scratch.size() < max_length + OVERHEAD)
         impl_->recv_scratch.resize(max_length + OVERHEAD);
 
     std::size_t inner_len = 0;
-    if (!impl_->inner->pop_receive(impl_->recv_scratch.data(), impl_->recv_scratch.size(),
-                                   inner_len, out_sender)) {
+    if (!impl_->inner->pop_receive(impl_->recv_scratch.data(), impl_->recv_scratch.size(), inner_len, out_sender)) {
         return false;
     }
 
@@ -243,10 +231,7 @@ bool EncryptedTransport::pop_receive(std::uint8_t* buffer, std::size_t max_lengt
         st->seen_bitmap |= bit;
     }
 
-    if (!ChaCha20Poly1305::open(key, nonce,
-                                nullptr, 0,
-                                received + NONCE_SIZE, ciphertext_len,
-                                buffer, max_length)) {
+    if (!ChaCha20Poly1305::open(key, nonce, nullptr, 0, received + NONCE_SIZE, ciphertext_len, buffer, max_length)) {
         return false;
     }
 

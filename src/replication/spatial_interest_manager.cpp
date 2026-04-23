@@ -76,8 +76,7 @@ void SpatialInterestManager::remove_entity(NetworkId net_id) {
     entities_.erase(it);
 }
 
-void SpatialInterestManager::set_entity_relevancy_radius(NetworkId net_id,
-                                                          float radius) noexcept {
+void SpatialInterestManager::set_entity_relevancy_radius(NetworkId net_id, float radius) noexcept {
     auto it = entities_.find(net_id);
     if (it != entities_.end()) {
         it->second.radius = radius;
@@ -138,8 +137,7 @@ bool SpatialInterestManager::is_relevant(NetworkId entity, ClientId client) cons
     return dist_sq <= radius * radius;
 }
 
-void SpatialInterestManager::query_sphere(float x, float y, float z, float radius,
-                                          std::vector<NetworkId>& out) const {
+void SpatialInterestManager::query_sphere(float x, float y, float z, float radius, std::vector<NetworkId>& out) const {
     if (radius <= 0.0f)
         return;
 
@@ -172,8 +170,7 @@ void SpatialInterestManager::query_sphere(float x, float y, float z, float radiu
     }
 }
 
-void SpatialInterestManager::query_visible(ClientId client_id,
-                                           std::vector<NetworkId>& out) const {
+void SpatialInterestManager::query_visible(ClientId client_id, std::vector<NetworkId>& out) const {
     auto cit = clients_.find(client_id);
     if (cit == clients_.end())
         return;
@@ -208,7 +205,9 @@ void SpatialInterestManager::query_visible(ClientId client_id,
 }
 
 NetworkReplicationManager::InterestFilter SpatialInterestManager::get_filter() {
-    return [this](NetworkId entity, ClientId client) { return is_relevant(entity, client); };
+    return [this](NetworkId entity, ClientId client) {
+        return is_relevant(entity, client);
+    };
 }
 
 void SpatialInterestManager::clear() {
@@ -227,8 +226,7 @@ std::size_t SpatialInterestManager::client_count() const noexcept {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-SpatialInterestManager::CellCoord SpatialInterestManager::world_to_cell(float x, float y,
-                                                                        float z) const noexcept {
+SpatialInterestManager::CellCoord SpatialInterestManager::world_to_cell(float x, float y, float z) const noexcept {
     return {
         static_cast<int64_t>(std::floor(x / cell_size_)),
         static_cast<int64_t>(std::floor(y / cell_size_)),

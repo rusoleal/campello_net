@@ -30,19 +30,15 @@ struct ConnectionToken {
     /// @param reserved_client_id Optional reserved ClientId (0 = auto-assign).
     /// @param current_time_unix Current Unix timestamp in seconds.
     /// @return true on success.
-    static bool generate(std::uint8_t out_token[SIZE],
-                         const std::uint8_t secret[32],
-                         std::uint32_t expiry_seconds = 60,
-                         std::uint64_t reserved_client_id = 0,
-                         std::uint32_t current_time_unix = 0) noexcept;
+    static bool generate(std::uint8_t out_token[SIZE], const std::uint8_t secret[32], std::uint32_t expiry_seconds = 60,
+                         std::uint64_t reserved_client_id = 0, std::uint32_t current_time_unix = 0) noexcept;
 
     /// @brief Validate a token: verify HMAC, check expiry, check reserved bytes.
     /// @param token Token to validate.
     /// @param secret 32-byte HMAC key (must match generation key).
     /// @param current_time_unix Current Unix timestamp in seconds.
     /// @return true if token is valid and not expired.
-    static bool validate(const std::uint8_t token[SIZE],
-                         const std::uint8_t secret[32],
+    static bool validate(const std::uint8_t token[SIZE], const std::uint8_t secret[32],
                          std::uint32_t current_time_unix) noexcept;
 
     /// @brief Extract the reserved ClientId from a token (0 if none).
