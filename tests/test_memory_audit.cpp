@@ -12,6 +12,8 @@
 
 #ifdef __APPLE__
 #include <malloc/malloc.h>
+#elif defined(_WIN32) && defined(_MSC_VER)
+#include <crtdbg.h>
 #else
 #include <malloc.h>
 #endif
@@ -21,10 +23,17 @@ using namespace systems::leal::campello_net::serialization;
 using namespace systems::leal::campello_net::transport;
 
 // ── Cross-platform allocation counter ────────────────────────────────────────
+//
+// macOS: malloc_zone_statistics (bytes in use)
+// Linux: mallinfo2 (bytes in use)
+// Windows (MSVC): _CrtMemState (debug heap blocks)
+// Other: no-op (tests run but do not validate allocation-free behaviour)
 
 struct MallocCounter {
 #ifdef __APPLE__
     malloc_statistics_t before{};
+#elif defined(_WIN32) && defined(_MSC_VER)
+    _CrtMemState before{};
 #else
     struct mallinfo2 before{};
 #endif
@@ -34,6 +43,8 @@ struct MallocCounter {
     void reset() {
 #ifdef __APPLE__
         malloc_zone_statistics(malloc_default_zone(), &before);
+#elif defined(_WIN32) && defined(_MSC_VER)
+        _CrtMemCheckpoint(&before);
 #else
         before = mallinfo2();
 #endif
@@ -46,6 +57,12 @@ struct MallocCounter {
         return static_cast<std::size_t>(after.size_in_use > before.size_in_use
                                             ? after.size_in_use - before.size_in_use
                                             : 0);
+#elif defined(_WIN32) && defined(_MSC_VER)
+        _CrtMemState after{};
+        _CrtMemCheckpoint(&after);
+        _CrtMemState diff{};
+        _CrtMemDifference(&diff, &before, &after);
+        return static_cast<std::size_t>(diff.lSizes[_NORMAL_BLOCK]);
 #else
         struct mallinfo2 after = mallinfo2();
         return static_cast<std::size_t>(after.uordblks > before.uordblks

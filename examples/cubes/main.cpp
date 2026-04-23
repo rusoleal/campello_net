@@ -12,13 +12,17 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#ifdef _WIN32
+#include <conio.h>
+#else
 #include <fcntl.h>
+#include <unistd.h>
+#endif
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
@@ -51,8 +55,21 @@ static void on_sigint(int) {
     g_running = false;
 }
 
-// ── Non-blocking stdin (macOS / POSIX) ───────────────────────────────────────
+// ── Non-blocking stdin ───────────────────────────────────────────────────────
 
+#ifdef _WIN32
+static void set_stdin_nonblocking(bool) {
+    // No-op: _kbhit() handles non-blocking checks on Windows.
+}
+
+static bool try_read_char(char& out) {
+    if (_kbhit()) {
+        out = static_cast<char>(_getch());
+        return true;
+    }
+    return false;
+}
+#else
 static void set_stdin_nonblocking(bool nonblocking) {
     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
     if (flags < 0)
@@ -72,6 +89,7 @@ static bool try_read_char(char& out) {
     }
     return false;
 }
+#endif
 
 // ── Bridge ───────────────────────────────────────────────────────────────────
 

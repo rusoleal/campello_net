@@ -7,11 +7,15 @@
 #include <campello_net/version.hpp>
 #include <csignal>
 #include <cstdlib>
+#ifdef _WIN32
+#include <conio.h>
+#else
 #include <fcntl.h>
+#include <unistd.h>
+#endif
 #include <iostream>
 #include <string>
 #include <thread>
-#include <unistd.h>
 #include <vector>
 
 using namespace systems::leal::campello_net;
@@ -32,8 +36,27 @@ static void on_sigint(int) {
     g_running = false;
 }
 
-// ── Non-blocking stdin (macOS / POSIX) ───────────────────────────────────────
+// ── Non-blocking stdin ───────────────────────────────────────────────────────
 
+#ifdef _WIN32
+static void set_stdin_nonblocking(bool) {
+    // No-op: _kbhit() handles non-blocking checks on Windows.
+}
+
+static bool try_read_line(std::string& out_line) {
+    static std::string buffer;
+    while (_kbhit()) {
+        int ch = _getch();
+        if (ch == '\r' || ch == '\n') {
+            out_line = buffer;
+            buffer.clear();
+            return true;
+        }
+        buffer.push_back(static_cast<char>(ch));
+    }
+    return false;
+}
+#else
 static void set_stdin_nonblocking(bool nonblocking) {
     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
     if (flags < 0)
@@ -45,8 +68,6 @@ static void set_stdin_nonblocking(bool nonblocking) {
     }
 }
 
-/// Try to read a complete line from non-blocking stdin.
-/// @return true if a full line was consumed.
 static bool try_read_line(std::string& out_line) {
     static std::string buffer;
     char ch = 0;
@@ -60,6 +81,7 @@ static bool try_read_line(std::string& out_line) {
     }
     return false;
 }
+#endif
 
 // ── Server ───────────────────────────────────────────────────────────────────
 
