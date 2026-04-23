@@ -33,7 +33,7 @@ struct MallocCounter {
 #elif defined(_WIN32) && defined(_MSC_VER)
     _CrtMemState before{};
 #else
-    struct mallinfo2 before{};
+    mallinfo2 before{};
 #endif
 
     MallocCounter() {
@@ -63,7 +63,7 @@ struct MallocCounter {
         _CrtMemDifference(&diff, &before, &after);
         return static_cast<std::size_t>(diff.lSizes[_NORMAL_BLOCK]);
 #else
-        struct mallinfo2 after = mallinfo2();
+        mallinfo2 after = mallinfo2();
         return static_cast<std::size_t>(after.uordblks > before.uordblks ? after.uordblks - before.uordblks : 0);
 #endif
     }
