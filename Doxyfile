@@ -1,7 +1,7 @@
 # Doxyfile for campello_net
 
 PROJECT_NAME           = "campello_net"
-PROJECT_NUMBER         = "0.1.0"
+PROJECT_NUMBER         = "0.2.0"
 PROJECT_BRIEF          = "C++20 multiplayer networking library for the Campello game engine"
 OUTPUT_DIRECTORY       = docs/doxygen
 

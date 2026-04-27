@@ -9,7 +9,7 @@ This repository implements **campello_net**, the multiplayer networking module f
 **Key constraints:**
 - C++20 minimum. Use concepts, `std::span`, designated initializers, and structured bindings where they improve clarity.
 - Zero-allocation on hot paths. Pool allocators for packets; no `std::malloc` during `tick()` or `poll()`.
-- Multiplatform: Windows (WinSock2), Linux/macOS (BSD sockets), iOS/Android (same BSD).
+- Multiplatform: Windows (WinSock2), Linux/macOS (BSD sockets), iOS/Android (same BSD), WebAssembly (browser WebSocket).
 - Header-first for small utilities; `.cpp` files for platform-specific implementations and heavy logic.
 
 ---
@@ -63,6 +63,7 @@ campello_net/
 │   ├── transport/
 │   │   ├── i_transport.hpp              # Transport abstraction
 │   │   ├── udp_transport.hpp            # UDP implementation (Win32 + POSIX in one file)
+│   │   ├── emscripten_websocket_transport.hpp # Browser WebSocket transport (WASM only)
 │   │   ├── loopback_transport.hpp       # In-memory transport for testing
 │   │   ├── encrypted_transport.hpp      # ChaCha20-Poly1305 transport wrapper
 │   │   ├── network_simulator.hpp        # Artificial latency/packet loss/duplication
@@ -86,7 +87,10 @@ campello_net/
 │       └── config.hpp                   # Compile-time configuration macros
 ├── src/
 │   ├── transport/
+│   │   ├── address.cpp                  # Address parsing / formatting (all platforms)
+│   │   ├── packet.cpp                   # PacketHeader serialize / deserialize
 │   │   ├── udp_transport.cpp            # Platform socket code
+│   │   ├── emscripten_websocket_transport.cpp # Browser WebSocket JS interop
 │   │   ├── loopback_transport.cpp       # Loopback hub + transport
 │   │   ├── encrypted_transport.cpp      # Encryption wrapper implementation
 │   │   └── network_simulator.cpp        # Network simulator implementation
@@ -169,6 +173,7 @@ Use the network simulation API (`LoopbackTransport::set_packet_loss(0.05f)`) in 
 | Windows | `src/transport/udp_transport.cpp` | `WSAStartup`/`WSACleanup` managed in `NetworkManager` lifecycle. `#ifdef _WIN32` blocks in single file. |
 | Unix | `src/transport/udp_transport.cpp` | `fcntl` for non-blocking; `SIGPIPE` ignored. Same source file as Windows. |
 | iOS | Same as Unix | Watch for background socket suspension. |
+| WASM (Browser) | `src/transport/emscripten_websocket_transport.cpp` | Client-only via browser `WebSocket` API. `bind()` returns `false`. All messages are reliable-ordered (TCP). |
 
 Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake.
 - `CAMPELLO_NET_PLATFORM_WIN32`
@@ -176,6 +181,7 @@ Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake
 - `CAMPELLO_NET_PLATFORM_MACOS`
 - `CAMPELLO_NET_PLATFORM_IOS`
 - `CAMPELLO_NET_PLATFORM_ANDROID`
+- `CAMPELLO_NET_PLATFORM_WASM` (Emscripten; `__EMSCRIPTEN__` detected in `config.hpp`)
 
 ---
 
@@ -211,6 +217,22 @@ Use `#ifdef CAMPELLO_NET_PLATFORM_*` guards. Platform detection happens in CMake
 - Audit public API documentation ✅
 - Memory audit, final cleanup ✅
 - Release v0.1.0 ✅
+
+### WebAssembly / Browser Support
+
+Browser-based clients are supported via `EmscriptenWebSocketTransport`, which wraps the browser's native `WebSocket` API using Emscripten's `EM_JS` macros.
+
+**Key constraints:**
+- **Client-only**: `bind()` returns `false`; a browser cannot listen for raw socket connections.
+- **Reliable-ordered only**: WebSocket runs over TCP, so `PacketReliability::Unreliable` cannot be honored.
+- **No LAN discovery**: `LanDiscovery` is excluded from WASM builds because browsers cannot send UDP broadcast beacons.
+- **No default transport**: `NetworkManager::start()` will fail on WASM if `set_transport()` was not called with a user-provided transport (e.g., `EmscriptenWebSocketTransport` or `LoopbackTransport`).
+
+**Build example (Emscripten):**
+```bash
+emcmake cmake -B build-wasm -DCAMPELLO_NET_BUILD_TESTS=ON
+emmake cmake --build build-wasm --parallel
+```
 
 ### Bluetooth / BLE Transport (Placeholder)
 

@@ -4,11 +4,11 @@
 using namespace systems::leal::campello_net;
 
 TEST_CASE("Version string is correct", "[version]") {
-    REQUIRE(version_string() == "0.1.0");
+    REQUIRE(version_string() == "0.2.0");
 }
 
 TEST_CASE("Version components are correct", "[version]") {
     REQUIRE(version_major() == 0);
-    REQUIRE(version_minor() == 1);
+    REQUIRE(version_minor() == 2);
     REQUIRE(version_patch() == 0);
 }

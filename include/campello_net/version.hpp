@@ -6,9 +6,9 @@
 
 namespace systems::leal::campello_net {
 
-/// @return Semantic version string (e.g., "0.1.0").
+/// @return Semantic version string (e.g., "0.2.0").
 [[nodiscard]] constexpr std::string_view version_string() noexcept {
-    return "0.1.0";
+    return "0.2.0";
 }
 
 /// @return Major version number.

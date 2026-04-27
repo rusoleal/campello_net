@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 #include <mutex>
+#endif
 #include <random>
 #include <vector>
 
@@ -13,8 +15,18 @@ namespace systems::leal::campello_net::transport {
 
 // ── LoopbackHub::Impl ───────────────────────────────────────────────────────
 
+#ifndef CAMPELLO_NET_PLATFORM_WASM
+using HubMutex = std::mutex;
+#else
+struct HubMutex {
+    void lock() {}
+    void unlock() {}
+    bool try_lock() { return true; }
+};
+#endif
+
 struct LoopbackHub::Impl {
-    std::mutex mutex_;
+    HubMutex mutex_;
     std::map<Address, LoopbackTransport*> servers_;
     std::map<Address, LoopbackTransport*> clients_;
     std::map<Address, Address> client_to_server_;
@@ -44,12 +56,12 @@ LoopbackHub::~LoopbackHub() = default;
 // ── LoopbackHub methods ─────────────────────────────────────────────────────
 
 void LoopbackHub::bind_server(const Address& addr, LoopbackTransport* t) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     impl_->servers_[addr] = t;
 }
 
 void LoopbackHub::unbind_server(const Address& addr) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     impl_->servers_.erase(addr);
     auto it = impl_->client_to_server_.begin();
     while (it != impl_->client_to_server_.end()) {
@@ -63,7 +75,7 @@ void LoopbackHub::unbind_server(const Address& addr) {
 }
 
 bool LoopbackHub::connect_client(const Address& server_addr, LoopbackTransport* client, Address& out_client_addr) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     auto it = impl_->servers_.find(server_addr);
     if (it == impl_->servers_.end()) {
         return false;
@@ -81,14 +93,14 @@ bool LoopbackHub::connect_client(const Address& server_addr, LoopbackTransport* 
 }
 
 void LoopbackHub::disconnect_client(const Address& client_addr) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     impl_->clients_.erase(client_addr);
     impl_->client_to_server_.erase(client_addr);
 }
 
 void LoopbackHub::deliver(const Address& to, const Address& from, const uint8_t* data, std::size_t len,
                           PacketReliability reliability) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     LoopbackTransport* target = impl_->find_transport(to);
     if (!target)
         return;
@@ -97,7 +109,7 @@ void LoopbackHub::deliver(const Address& to, const Address& from, const uint8_t*
 
 void LoopbackHub::broadcast(const Address& server_addr, const Address& from, const uint8_t* data, std::size_t len,
                             PacketReliability reliability) {
-    std::lock_guard<std::mutex> lock(impl_->mutex_);
+    std::lock_guard<HubMutex> lock(impl_->mutex_);
     for (const auto& [client_addr, srv_addr] : impl_->client_to_server_) {
         if (srv_addr != server_addr)
             continue;

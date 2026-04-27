@@ -6,14 +6,18 @@
 #include "campello_net/network_replication.hpp"
 #include "campello_net/rate_limiter.hpp"
 #include "campello_net/rpc_manager.hpp"
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 #include "campello_net/transport/udp_transport.hpp"
+#endif
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstring>
 #include <limits>
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 #include <thread>
+#endif
 
 namespace systems::leal::campello_net {
 
@@ -654,7 +658,13 @@ bool NetworkManager::start(const Config& config) {
 
     // Use user-provided transport or create a default UdpTransport
     if (!impl_->transport) {
+#ifndef CAMPELLO_NET_PLATFORM_WASM
         impl_->transport = std::make_unique<transport::UdpTransport>();
+#else
+        CAMPELLO_NET_LOGE("WASM requires an explicit transport (e.g. EmscriptenWebSocketTransport)");
+        impl_->mode = Mode::None;
+        return false;
+#endif
     }
 
     if (config.mode == Mode::Server || config.mode == Mode::Host) {
@@ -719,7 +729,9 @@ void NetworkManager::stop() {
     // Give the OS a moment to actually transmit the UDP packet before
     // closing the socket. Without this, the disconnect notify can be
     // dropped under load (observed on macOS).
+#ifndef CAMPELLO_NET_PLATFORM_WASM
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+#endif
 
     if (impl_->transport) {
         impl_->transport->disconnect();

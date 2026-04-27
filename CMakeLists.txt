@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(
     campello_net
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "Multiplayer networking library for the Campello game engine"
     LANGUAGES CXX
 )
@@ -17,8 +17,9 @@ option(CAMPELLO_NET_BUILD_EXAMPLES "Build examples" ON)
 option(CAMPELLO_NET_INSTALL "Generate install targets" ON)
 
 # ── Library target ───────────────────────────────────────────────────────────
-add_library(campello_net
-    src/transport/udp_transport.cpp
+set(CAMPELLO_NET_SOURCES
+    src/transport/address.cpp
+    src/transport/packet.cpp
     src/transport/network_simulator.cpp
     src/transport/loopback_transport.cpp
     src/transport/encrypted_transport.cpp
@@ -35,9 +36,21 @@ add_library(campello_net
     src/rpc_manager.cpp
     src/prediction/input_buffer.cpp
     src/prediction/lag_compensator.cpp
-    src/discovery/lan_discovery.cpp
     src/replication/spatial_interest_manager.cpp
 )
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    list(APPEND CAMPELLO_NET_SOURCES
+        src/transport/udp_transport.cpp
+        src/discovery/lan_discovery.cpp
+    )
+else()
+    list(APPEND CAMPELLO_NET_SOURCES
+        src/transport/emscripten_websocket_transport.cpp
+    )
+endif()
+
+add_library(campello_net ${CAMPELLO_NET_SOURCES})
 add_library(campello::net ALIAS campello_net)
 
 target_include_directories(
@@ -58,6 +71,8 @@ elseif(APPLE)
     target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_MACOS)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_LINUX)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    target_compile_definitions(campello_net PUBLIC CAMPELLO_NET_PLATFORM_WASM)
 endif()
 
 if(MSVC)

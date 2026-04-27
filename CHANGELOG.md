@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-04-27
+
+### Added
+- **WebAssembly / Emscripten support**: `EmscriptenWebSocketTransport` wraps the browser's native `WebSocket` API for client-only WASM builds.
+- **WASM example**: `examples/wasm_client/` with HTML/JS interop and a Python dev server.
+- **CI**: GitHub Actions Emscripten build job (`build-wasm`).
+
+### Changed
+- **Transport refactoring**: Extracted `address.cpp` and `packet.cpp` from `udp_transport.cpp` for cleaner platform-specific separation.
+- **Build system**: CMake now conditionally compiles `udp_transport.cpp` / `lan_discovery.cpp` on native platforms and `emscripten_websocket_transport.cpp` on Emscripten; LAN discovery is excluded from WASM builds.
+
 ## [0.1.0] - 2026-04-23
 
 ### Added
@@ -25,4 +36,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Examples**: echo, chat, cubes (replicated entities with spatial culling), pong (2-player with interpolation), and stress_test (benchmark tool).
 - **Tests**: 155 test cases with 1,889 assertions covering transport, serialization, replication, RPCs, crypto, clock sync, memory auditing, and network simulation.
 
+[0.2.0]: https://github.com/rusoleal/campello_net/releases/tag/v0.2.0
 [0.1.0]: https://github.com/rusoleal/campello_net/releases/tag/v0.1.0

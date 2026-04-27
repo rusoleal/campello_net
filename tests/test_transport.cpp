@@ -1,5 +1,7 @@
 #include <campello_net/transport/loopback_transport.hpp>
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 #include <campello_net/transport/udp_transport.hpp>
+#endif
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstring>
@@ -47,6 +49,8 @@ TEST_CASE("PacketHeader serializes and deserializes", "[transport][packet]") {
     REQUIRE(decoded.frag_index == 1);
     REQUIRE(decoded.frag_count == 3);
 }
+
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 
 TEST_CASE("Two transports exchange unreliable packets", "[transport]") {
     Address server_addr(17777);
@@ -199,6 +203,8 @@ TEST_CASE("RTT is measured after reliable exchange", "[transport]") {
     REQUIRE(rtt < 0.5f);
 }
 
+#endif // CAMPELLO_NET_PLATFORM_WASM
+
 // ── LoopbackTransport tests ─────────────────────────────────────────────────
 
 TEST_CASE("LoopbackTransport binds and connects instantly", "[transport][loopback]") {
@@ -338,7 +344,9 @@ TEST_CASE("LoopbackTransport supports artificial latency", "[transport][loopback
     REQUIRE(!server.pop_receive(buffer, sizeof(buffer), len, sender));
 
     // Wait for latency, then client must poll to flush its delayed queue
+#ifndef CAMPELLO_NET_PLATFORM_WASM
     std::this_thread::sleep_for(std::chrono::milliseconds(60));
+#endif
     client.poll();
     server.poll();
 

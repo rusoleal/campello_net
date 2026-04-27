@@ -4,7 +4,9 @@
 #include "campello_net/rpc_manager.hpp"
 #include "campello_net/transport/loopback_transport.hpp"
 #include "campello_net/transport/network_simulator.hpp"
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 #include "campello_net/transport/udp_transport.hpp"
+#endif
 
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
@@ -66,6 +68,8 @@ TEST_CASE("NetworkTime reset clears state") {
     REQUIRE(nt.offset() == 0.0);
     REQUIRE(nt.rtt() == 0.0);
 }
+
+#ifndef CAMPELLO_NET_PLATFORM_WASM
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -653,6 +657,8 @@ TEST_CASE("add_local_client returns 0 in client mode") {
     client.stop();
 }
 
+#endif // CAMPELLO_NET_PLATFORM_WASM
+
 // ── LoopbackTransport integration tests ─────────────────────────────────────
 
 TEST_CASE("NetworkManager server/client over LoopbackTransport without sockets or sleep") {
@@ -1073,7 +1079,9 @@ TEST_CASE("net_stats bandwidth estimate is non-zero after traffic") {
 
     // Bandwidth is computed in poll() based on time delta
     // We need at least one more poll() to get the EMA updated
+#ifndef CAMPELLO_NET_PLATFORM_WASM
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+#endif
     server.poll();
 
     NetStats stats = server.net_stats(cid);

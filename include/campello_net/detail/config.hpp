@@ -6,7 +6,7 @@
 // ── Platform detection (fallback if CMake did not define) ──────────────────
 #if !defined(CAMPELLO_NET_PLATFORM_WIN32) && !defined(CAMPELLO_NET_PLATFORM_LINUX) &&                                  \
     !defined(CAMPELLO_NET_PLATFORM_MACOS) && !defined(CAMPELLO_NET_PLATFORM_IOS) &&                                    \
-    !defined(CAMPELLO_NET_PLATFORM_ANDROID)
+    !defined(CAMPELLO_NET_PLATFORM_ANDROID) && !defined(CAMPELLO_NET_PLATFORM_WASM)
 #if defined(_WIN32)
 #define CAMPELLO_NET_PLATFORM_WIN32
 #elif defined(__ANDROID__)
@@ -18,6 +18,8 @@
 #else
 #define CAMPELLO_NET_PLATFORM_MACOS
 #endif
+#elif defined(__EMSCRIPTEN__)
+#define CAMPELLO_NET_PLATFORM_WASM
 #elif defined(__linux__)
 #define CAMPELLO_NET_PLATFORM_LINUX
 #endif
@@ -36,5 +38,5 @@
 
 // ── Version ──────────────────────────────────────────────────────────────────
 #define CAMPELLO_NET_VERSION_MAJOR 0
-#define CAMPELLO_NET_VERSION_MINOR 1
+#define CAMPELLO_NET_VERSION_MINOR 2
 #define CAMPELLO_NET_VERSION_PATCH 0

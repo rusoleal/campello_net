@@ -71,6 +71,23 @@ jobs:
       - name: Build Android (${{ matrix.abi }})
         run: cmake --build build-android --config ${{ matrix.build_type }} --parallel
 
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.50
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Configure WASM
+        run: emcmake cmake -B build-wasm -DCMAKE_BUILD_TYPE=Release -DCAMPELLO_NET_BUILD_TESTS=OFF -DCAMPELLO_NET_BUILD_EXAMPLES=OFF
+
+      - name: Build WASM
+        run: emmake cmake --build build-wasm --parallel
+
   format-check:
     runs-on: ubuntu-latest
     steps:

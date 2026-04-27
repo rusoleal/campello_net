@@ -1,6 +1,6 @@
 # campello_net
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/rusoleal/campello_net/releases)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/rusoleal/campello_net/releases)
 
 Advanced multiplayer networking library for the [Campello](https://github.com/rusoleal/campello) game engine ecosystem.
 
@@ -80,7 +80,7 @@ include(FetchContent)
 FetchContent_Declare(
   campello_net
   GIT_REPOSITORY https://github.com/rusoleal/campello_net.git
-  GIT_TAG        v0.1.0   # Pin to a release; use 'main' for latest
+  GIT_TAG        v0.2.0   # Pin to a release; use 'main' for latest
 )
 FetchContent_MakeAvailable(campello_net)
 
@@ -236,7 +236,7 @@ High-level milestones:
 - **M0 Alpha Core** ✅ — Connections, messaging, server/client/host
 - **M1 Beta Sync** ✅ — ECS replication, RPCs, interest management, delta compression
 - **M2 Beta Gameplay** ✅ — Prediction, interpolation, clock sync, security (tokens + encryption)
-- **M3 Release** ✅ — Stress testing, benchmarks, final documentation, v0.1.0 tagged
+- **M3 Release** ✅ — Stress testing, benchmarks, final documentation, v0.2.0 tagged
 
 ---
 
