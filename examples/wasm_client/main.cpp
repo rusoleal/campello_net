@@ -3,11 +3,9 @@
 #include <campello_net/transport/address.hpp>
 #include <campello_net/transport/emscripten_websocket_transport.hpp>
 #include <campello_net/transport/packet.hpp>
-
-#include <emscripten.h>
-
 #include <cstdint>
 #include <cstring>
+#include <emscripten.h>
 #include <string>
 
 using namespace systems::leal::campello_net;
@@ -98,9 +96,9 @@ int main() {
     g_net = &net;
 
     network_log::set_log_callback([](network_log::LogLevel level, const std::string& message) {
-        const char* prefix = (level == network_log::LogLevel::Error)   ? "[ERR]"
+        const char* prefix = (level == network_log::LogLevel::Error)     ? "[ERR]"
                              : (level == network_log::LogLevel::Warning) ? "[WRN]"
-                                                                          : "[INF]";
+                                                                         : "[INF]";
         EM_ASM({ console.log(UTF8ToString($0) + " " + UTF8ToString($1)); }, prefix, message.c_str());
     });
 

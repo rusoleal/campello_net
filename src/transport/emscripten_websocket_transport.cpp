@@ -2,10 +2,9 @@
 
 #ifdef CAMPELLO_NET_PLATFORM_WASM
 
-#include <emscripten.h>
-
 #include <algorithm>
 #include <cstring>
+#include <emscripten.h>
 #include <vector>
 
 namespace systems::leal::campello_net::transport {
@@ -53,7 +52,8 @@ EM_JS(int, ws_ready_state, (int handle), {
 
 EM_JS(void, ws_send, (int handle, const uint8_t* data, size_t len), {
     var ws = Module.campello_ws_sockets[handle];
-    if (!ws || ws.readyState !== 1) return;
+    if (!ws || ws.readyState != = 1)
+        return;
     var buf = new Uint8Array(len);
     buf.set(HEAPU8.subarray(data, data + len));
     ws.send(buf);
@@ -61,13 +61,15 @@ EM_JS(void, ws_send, (int handle, const uint8_t* data, size_t len), {
 
 EM_JS(int, ws_peek_message_length, (int handle), {
     var queue = Module.campello_ws_recv_queue[handle];
-    if (!queue || queue.length === 0) return -1;
+    if (!queue || queue.length == = 0)
+        return -1;
     return queue[0].length;
 });
 
 EM_JS(int, ws_pop_message, (int handle, uint8_t* buffer, size_t max_len), {
     var queue = Module.campello_ws_recv_queue[handle];
-    if (!queue || queue.length === 0) return -1;
+    if (!queue || queue.length == = 0)
+        return -1;
     var msg = queue.shift();
     var len = Math.min(msg.length, max_len);
     HEAPU8.set(msg.subarray(0, len), buffer);
@@ -99,7 +101,8 @@ EmscriptenWebSocketTransport::~EmscriptenWebSocketTransport() {
 }
 
 EmscriptenWebSocketTransport::EmscriptenWebSocketTransport(EmscriptenWebSocketTransport&&) noexcept = default;
-EmscriptenWebSocketTransport& EmscriptenWebSocketTransport::operator=(EmscriptenWebSocketTransport&&) noexcept = default;
+EmscriptenWebSocketTransport&
+EmscriptenWebSocketTransport::operator=(EmscriptenWebSocketTransport&&) noexcept = default;
 
 bool EmscriptenWebSocketTransport::bind(const Address& /*address*/) {
     // Browser WASM cannot listen for incoming connections.
@@ -183,8 +186,8 @@ void EmscriptenWebSocketTransport::poll() {
     }
 }
 
-bool EmscriptenWebSocketTransport::pop_receive(std::uint8_t* buffer, std::size_t max_length,
-                                               std::size_t& out_length, Address& out_sender) {
+bool EmscriptenWebSocketTransport::pop_receive(std::uint8_t* buffer, std::size_t max_length, std::size_t& out_length,
+                                               Address& out_sender) {
     if (impl_->recv_read_idx >= impl_->recv_queue.size()) {
         impl_->recv_queue.clear();
         impl_->recv_read_idx = 0;

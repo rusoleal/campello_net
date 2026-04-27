@@ -254,8 +254,7 @@ bool Address::operator==(const Address& other) const noexcept {
         return true;
     const auto* a = wasm_data(storage_);
     const auto* b = wasm_data(other.storage_);
-    return a->port == b->port && a->host_len == b->host_len &&
-           std::memcmp(a->host, b->host, a->host_len) == 0;
+    return a->port == b->port && a->host_len == b->host_len && std::memcmp(a->host, b->host, a->host_len) == 0;
 }
 
 bool Address::operator!=(const Address& other) const noexcept {

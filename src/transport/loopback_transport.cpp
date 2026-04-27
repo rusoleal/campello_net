@@ -21,7 +21,9 @@ using HubMutex = std::mutex;
 struct HubMutex {
     void lock() {}
     void unlock() {}
-    bool try_lock() { return true; }
+    bool try_lock() {
+        return true;
+    }
 };
 #endif
 
